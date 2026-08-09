@@ -34,18 +34,39 @@ jobs:
           sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
       - name: Extract BiblioRadar project
+        shell: bash
         run: |
+          set -e
+
+          rm -rf project
           mkdir -p project
-          ZIP=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
-          echo "Using ZIP: $ZIP"
+
+          ZIP="./Lupa_de_Relevanta_Android_v0.2_GitHub.zip"
+
+          if [ ! -f "$ZIP" ]; then
+            ZIP=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
+          fi
+
+          echo "Arhivă folosită: $ZIP"
           unzip -q "$ZIP" -d project
+
           test -f project/app/build.gradle.kts
+          test -f project/app/src/main/java/ro/lupaocr/app/MainActivity.kt
 
       - name: Use stable Android configuration
+        shell: bash
         run: |
+          set -e
+
           FILE="project/app/build.gradle.kts"
 
-          sed -i -E 's/compileSdk = [0-9]+/compileSdk = 36/' "$FILE"
+          sed -i -E \
+            's/compileSdk = [0-9]+/compileSdk = 36/' \
+            "$FILE"
+
+          sed -i -E \
+            's/targetSdk = [0-9]+/targetSdk = 36/' \
+            "$FILE"
 
           sed -i -E \
             's#androidx\.core:core-ktx:[0-9.]+#androidx.core:core-ktx:1.17.0#' \
@@ -55,16 +76,40 @@ jobs:
             's#androidx\.activity:activity-ktx:[0-9.]+#androidx.activity:activity-ktx:1.10.1#' \
             "$FILE"
 
-      - name: Build BiblioRadar
+      - name: Fix MainActivity Kotlin
+        shell: bash
+        run: |
+          set -e
+
+          FILE="project/app/src/main/java/ro/lupaocr/app/MainActivity.kt"
+
+          sed -i \
+            's/ScrollView.LayoutParams(/FrameLayout.LayoutParams(/g' \
+            "$FILE"
+
+          sed -i \
+            's/permissions: Array<out String>/permissions: Array<String>/g' \
+            "$FILE"
+
+          echo "Verificare corecții:"
+          grep -n "settingsPanel.addView" "$FILE"
+          grep -n "onRequestPermissionsResult" "$FILE"
+
+      - name: Build BiblioRadar APK
+        shell: bash
         run: |
           gradle --no-daemon -p project :app:assembleDebug
 
       - name: Prepare APK
+        shell: bash
         run: |
           mkdir -p output
-          cp project/app/build/outputs/apk/debug/app-debug.apk output/BiblioRadar.apk
 
-      - name: Upload APK
+          cp \
+            project/app/build/outputs/apk/debug/app-debug.apk \
+            output/BiblioRadar.apk
+
+      - name: Upload BiblioRadar APK
         uses: actions/upload-artifact@v4
         with:
           name: BiblioRadar-APK
