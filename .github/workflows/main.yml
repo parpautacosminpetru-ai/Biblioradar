@@ -28,20 +28,15 @@ jobs:
         with:
           gradle-version: "9.5.0"
 
-      - name: Set up Android SDK
+      - name: Set up Android SDK 36
         uses: android-actions/setup-android@v4
         with:
-          packages: ""
-
-      - name: Install Android API 37
-        run: |
-          sdkmanager --channel=3 "platforms;android-37" "build-tools;36.0.0"
+          packages: "platform-tools platforms;android-36 build-tools;36.0.0"
 
       - name: Build Lupa de Relevanta
-        run: |
-          gradle --no-daemon :app:assembleDebug
+        run: gradle --no-daemon :app:assembleDebug
 
-      - name: Upload Lupa APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Lupa-Relevanta-APK
