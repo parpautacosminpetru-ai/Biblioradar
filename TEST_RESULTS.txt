@@ -1,0 +1,16 @@
+Lupa de Relevanță v0.2 — test logic
+Data: 2026-08-09
+
+PASS - parser @title
+PASS - ierarhie # / ## și traseu părinte → copil
+PASS - culoare explicită #RRGGBB
+PASS - simbol explicit Unicode
+PASS - separare termeni cu |
+PASS - expresii cu spații păstrate
+PASS - STARTS_WITH: univers -> universității
+PASS - diacritice ignorate: tari -> ȚĂRII
+PASS - CONTAINS + limită de caractere
+
+Rezultat executat cu kotlinc/JVM: OK: map parser + matcher
+
+Notă: build-ul Android complet este pregătit pentru GitHub Actions. Mediul local al acestui pachet nu include Android SDK, de aceea APK-ul se compilează prin workflow-ul .github/workflows/build-apk.yml.

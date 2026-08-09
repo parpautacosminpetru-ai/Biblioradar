@@ -1,0 +1,16 @@
+@title: Exemplu — cercetare istorică
+
+# Tema centrală | color=#C84A4A | symbol=★
+reformă | reforme | reformator
+schimbare instituțională
+
+## Actori | color=#D9893D | symbol=◆
+boier | boieri | boierime
+domn | domnitor | domnie
+
+## Instituții | color=#3F7394 | symbol=■
+sfat domnesc | divan
+mănăstire | mănăstiri
+
+### Detalii juridice | color=#557A55 | symbol=●
+hrisov | privilegiu | statut | regulament
