@@ -28,17 +28,68 @@ jobs:
         with:
           gradle-version: "9.5.0"
 
-      - name: Set up Android SDK 36
+      - name: Set up Android
         uses: android-actions/setup-android@v4
-        with:
-          packages: "platform-tools platforms;android-36 build-tools;36.0.0"
 
-      - name: Build Lupa de Relevanta
-        run: gradle --no-daemon :app:assembleDebug
+      - name: Install Android API 36
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
-      - name: Upload APK
+      - name: Find Android project
+        shell: bash
+        run: |
+          set -e
+
+          APP_GRADLE=$(find . -type f -path "*/app/build.gradle.kts" | head -n 1)
+
+          if [ -z "$APP_GRADLE" ]; then
+            echo "Nu am găsit app/build.gradle.kts"
+            echo "Fișiere găsite:"
+            find . -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
+          APP_DIR=$(dirname "$APP_GRADLE")
+          PROJECT_DIR=$(dirname "$APP_DIR")
+
+          echo "Proiect găsit în: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+      - name: Force stable Android configuration
+        shell: bash
+        run: |
+          FILE="$PROJECT_DIR/app/build.gradle.kts"
+
+          sed -i -E 's/compileSdk = [0-9]+/compileSdk = 36/' "$FILE"
+          sed -i -E 's/targetSdk = [0-9]+/targetSdk = 36/' "$FILE"
+
+          sed -i -E \
+            's#androidx\.core:core-ktx:[0-9.]+#androidx.core:core-ktx:1.17.0#' \
+            "$FILE"
+
+          sed -i -E \
+            's#androidx\.activity:activity-ktx:[0-9.]+#androidx.activity:activity-ktx:1.10.1#' \
+            "$FILE"
+
+          echo "Configurare folosită:"
+          cat "$FILE"
+
+      - name: Build BiblioRadar APK
+        shell: bash
+        run: |
+          gradle --no-daemon -p "$PROJECT_DIR" :app:assembleDebug
+
+      - name: Prepare APK
+        shell: bash
+        run: |
+          mkdir -p output
+          cp "$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk" \
+             "output/BiblioRadar.apk"
+
+      - name: Upload BiblioRadar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Lupa-Relevanta-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: BiblioRadar-APK
+          path: output/BiblioRadar.apk
           if-no-files-found: error
