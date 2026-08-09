@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "ro.lupaocr.app"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ro.lupaocr.app"
@@ -31,8 +31,8 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.19.0")
-    implementation("androidx.activity:activity-ktx:1.13.0")
+    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.activity:activity-ktx:1.10.1")
 
     val cameraX = "1.6.1"
     implementation("androidx.camera:camera-core:$cameraX")
@@ -41,6 +41,5 @@ dependencies {
     implementation("androidx.camera:camera-view:$cameraX")
     implementation("androidx.camera:camera-mlkit-vision:$cameraX")
 
-    // Bundled model: OCR works offline after the APK is installed.
     implementation("com.google.mlkit:text-recognition:16.0.1")
 }
