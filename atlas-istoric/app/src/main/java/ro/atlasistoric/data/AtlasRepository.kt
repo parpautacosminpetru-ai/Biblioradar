@@ -114,6 +114,67 @@ class AtlasRepository(private val db: AtlasDatabase) {
         topicIds.forEach { id -> dao.addAssertionTopicLink(AssertionTopicLink(item.id, id)) }
     }
 
+
+    /**
+     * Study cards only reference existing evidence. Questions and repetition states
+     * belong to the personal learning layer and cannot overwrite source text.
+     */
+    suspend fun saveStudyCard(old: StudyCard?, card: StudyCard) = db.withTransaction {
+        val sourceClaim = dao.assertionById(card.assertionId)
+            ?: error("Afirmația documentară nu mai există")
+        require(card.question.trim().length >= 5) { "Scrie o întrebare de cel puțin cinci caractere" }
+        require(card.answerMode in setOf("PASAJ", "DATA", "LOC")) { "Tip de exercițiu necunoscut" }
+        if (card.answerMode == "DATA") {
+            require(sourceClaim.yearStart != null || sourceClaim.yearEnd != null ||
+                sourceClaim.periodLabel.isNotBlank()) { "Sursa nu precizează încă un interval" }
+        }
+        if (card.answerMode == "LOC") {
+            require(dao.claimEntityLinks(sourceClaim.id).any { it.role == "LOC" }) {
+                "Asociază mai întâi o localizare documentată"
+            }
+        }
+        val normalized = ro.atlasistoric.util.TimeMath.normalize(card.question)
+        require(dao.allStudyCards().none {
+            it.id != card.id && it.assertionId == card.assertionId &&
+                it.answerMode == card.answerMode &&
+                ro.atlasistoric.util.TimeMath.normalize(it.question) == normalized
+        }) { "Această întrebare există deja pentru aceeași afirmație" }
+        if (old == null) dao.insertStudyCard(card.copy(question = card.question.trim()))
+        else {
+            val previous = dao.studyCardById(card.id) ?: error("Fișa veche nu există")
+            require(previous.assertionId == card.assertionId) {
+                "Schimbarea sursei unei fișe existente nu este permisă"
+            }
+            dao.insertRevision(RevisionEntry(
+                recordType = "STUDY_CARD", recordId = card.id,
+                previousJson = json.encodeToString(previous)
+            ))
+            val changedPrompt = previous.question != card.question.trim() ||
+                previous.answerMode != card.answerMode
+            dao.updateStudyCard(card.copy(
+                question = card.question.trim(),
+                // Changed questions start a new review cycle, with old attempts preserved.
+                dueAt = if (changedPrompt) 0L else previous.dueAt,
+                intervalDays = if (changedPrompt) 0 else previous.intervalDays,
+                easePermille = if (changedPrompt) 2300 else previous.easePermille,
+                repetitions = if (changedPrompt) 0 else previous.repetitions,
+                lapses = previous.lapses,
+                lastReviewedAt = if (changedPrompt) null else previous.lastReviewedAt,
+                createdAt = previous.createdAt,
+                updatedAt = nowMillis()
+            ))
+        }
+    }
+
+    suspend fun rateStudyCard(cardId: String, grade: Int, at: Long = nowMillis()) =
+        db.withTransaction {
+            val previous = dao.studyCardById(cardId) ?: error("Fișa de învățare nu există")
+            require(!previous.suspended) { "Fișa este suspendată" }
+            val result = ro.atlasistoric.util.RecallScheduler.schedule(previous, grade, at)
+            dao.updateStudyCard(result.card)
+            dao.insertStudyReview(result.review)
+        }
+
     suspend fun saveDraft(old: ResearchDraft?, item: ResearchDraft, claimIds: Set<String>) = db.withTransaction {
         if (old == null) dao.insertDraft(item)
         else {
