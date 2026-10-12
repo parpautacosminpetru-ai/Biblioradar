@@ -40,3 +40,13 @@ Schema SQLite Room v2 are `MIGRATION_1_2` pentru a adăuga stadiul lecturii și 
 ## Scalabilitate
 
 Stocarea locală SQLite poate fi extinsă, însă prezentarea colecțiilor întregi prin `Flow<List<...>>` nu garantează performanță pentru milioane de pasaje. O evoluție pentru volum extrem trebuie să includă Room Paging3, FTS5, tablouri de agregare pe epoci/regiuni și teste pe telefoane cu memorie mică. Datele actuale rămân exportabile independent de interfață.
+
+## Strat didactic v1.3
+
+- `StudyCard(assertionId)` referă afirmația documentară originară; întrebarea și nota cercetătorului sunt independente de sursă.
+- `StudyReview(cardId, grade, reviewedAt, nextDueAt)` înregistrează fiecare recapitulare într-un jurnal separat.
+- Întrebările pot evalua pasajul, anul/intervalul sau locul explicit, fără a construi alte fapte istorice.
+- Politica de repetare este locală și deterministă; nu estimează în mod științific cunoașterea reală a utilizatorului.
+- Filtrele didactice reutilizează nestingul temporal, geografic și tematic; precizia incompletă este păstrată.
+- Migrarea incrementală `MIGRATION_2_3` păstrează toate tabelele anterioare; exportul JSON v3 include progresul didactic.
+- Exercițiile de tip hartă, aliniere cronologică și confruntare critică a două surse sunt planificate pentru versiuni ulterioare.
