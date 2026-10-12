@@ -41,6 +41,7 @@ abstract class AtlasDatabase : RoomDatabase() {
                       question TEXT NOT NULL,
                       answerMode TEXT NOT NULL,
                       note TEXT NOT NULL,
+                      suspended INTEGER NOT NULL,
                       dueAt INTEGER NOT NULL,
                       intervalDays INTEGER NOT NULL,
                       easePermille INTEGER NOT NULL,
