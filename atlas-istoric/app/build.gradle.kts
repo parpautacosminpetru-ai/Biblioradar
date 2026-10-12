@@ -6,6 +6,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+val permanentKeystore = System.getenv("ATLAS_RELEASE_KEYSTORE_PATH")
+
 android {
     namespace = "ro.atlasistoric"
     compileSdk = 35
@@ -14,12 +16,29 @@ android {
         applicationId = "ro.atlasistoric"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.4.0"
+        versionCode = 7
+        versionName = "1.5.0-rc1"
+    }
+
+    signingConfigs {
+        // Real production releases require a permanent private key, never checked into Git.
+        if (!permanentKeystore.isNullOrBlank()) {
+            create("atlasRelease") {
+                storeFile = file(permanentKeystore)
+                storePassword = System.getenv("ATLAS_RELEASE_STORE_PASSWORD")
+                keyAlias = System.getenv("ATLAS_RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("ATLAS_RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
-        release { isMinifyEnabled = false }
+        release {
+            isMinifyEnabled = false
+            if (!permanentKeystore.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("atlasRelease")
+            }
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
