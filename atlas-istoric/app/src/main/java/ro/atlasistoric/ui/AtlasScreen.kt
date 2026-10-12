@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -76,8 +75,7 @@ fun AtlasScreen(
     topicMatchAll: Boolean, onTopicMatchAll: (Boolean) -> Unit,
     perspective: String, onPerspective: (String) -> Unit,
     search: String, onSearch: (String) -> Unit,
-    onOpen: (String) -> Unit,
-    onOverlaps: () -> Unit
+    onOpen: (String) -> Unit
 ) {
     // The temporal ruler exists independently of stored documents: zoom never invents evidence.
     val eras = remember(assertions) { assertions.map { it.periodLabel } }
@@ -148,35 +146,6 @@ fun AtlasScreen(
             .groupingBy { it }.eachCount().toList().sortedByDescending { it.second }.take(40)
             .mapNotNull { (id, count) -> entitiesById[id]?.let { it to count } }
     }
-    // The matrix visualizes evidence counts, never a guess about events or territorial borders.
-    val matrixClaims = remember(assertions, topicBranches, topicMatchAll, tByClaim) {
-        if (topicBranches.isEmpty()) assertions else assertions.filter { claim ->
-            val ids = tByClaim[claim.id].orEmpty().map { it.topicId }.toSet()
-            if (topicMatchAll) topicBranches.all { b -> ids.any { it in b } }
-            else topicBranches.any { b -> ids.any { it in b } }
-        }
-    }
-    val matrixRows = remember(perspective, geographicRows, thematicRows) {
-        if (perspective == "TEMA") thematicRows else geographicRows
-    }
-    val matrixCounts by produceState<Map<String, List<Int>>>(
-        emptyMap(), matrixRows, availableSlots, matrixClaims, relations, eByClaim, tByClaim, perspective, topics
-    ) {
-        value = withContext(Dispatchers.Default) {
-            val candidateRows = matrixRows.take(12)
-            candidateRows.map { row ->
-            row.id to availableSlots.take(15).map { slot ->
-                val nested = if (perspective == "TEMA") descendantsOfTopic(row.id, topics)
-                    else descendantsOfPlace(row.id, relations, slot.from, slot.through)
-                matrixClaims.count { claim ->
-                    slot.matches(claim.yearStart, claim.yearEnd, claim.month, claim.day, claim.periodLabel) &&
-                    (if (perspective == "TEMA") tByClaim[claim.id].orEmpty().any { it.topicId in nested }
-                     else eByClaim[claim.id].orEmpty().any { it.role == "LOC" && it.entityId in nested })
-                }
-            }
-            }.toMap()
-        }
-    }
     var yearJump by remember { mutableStateOf(anchorYear.toString()) }
     LaunchedEffect(anchorYear) { yearJump = anchorYear.toString() }
 
@@ -192,12 +161,25 @@ fun AtlasScreen(
                 Text("Timp × Spațiu × Tematică · sursele rămân intacte",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Spacer(Modifier.height(9.dp))
-            FilledTonalButton(onClick = onOverlaps, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Default.GridView, contentDescription = null)
-                Spacer(Modifier.width(9.dp))
-                Text("Deschide suprapunerile vizuale →")
-            }
+        }
+        item {
+            ThreeAxisAtlas(
+                assertions = assertions, entities = entities, topics = topics,
+                entityLinks = entityLinks, topicLinks = topicLinks, relations = relations,
+                slots = availableSlots, level = level, timeKey = timeKey,
+                onTimeKey = { key ->
+                    onTimeKey(key)
+                    TemporalNavigation.fromKey(key)?.from?.let(onAnchorYear)
+                },
+                onZoom = { direction ->
+                    val levels = listOf("EPOCA", "SECOL", "AN", "LUNA", "ZI")
+                    val next = (levels.indexOf(level) + direction).coerceIn(0, levels.lastIndex)
+                    selectedSlot?.from?.let(onAnchorYear)
+                    onLevel(levels[next], null)
+                },
+                placeIds = placeIds, onPlaceIds = onPlaceIds,
+                topicIds = topicIds, onTopicIds = onTopicIds
+            )
         }
         item {
             SectionSurface("01 · TIMP", "Rigla continuă, independentă de surse") {
@@ -294,61 +276,6 @@ fun AtlasScreen(
                         FilterChip(selected = perspective == p, onClick = { onPerspective(p) },
                             label = { Text(when (p) { "TIMP" -> "Cronologic"; "SPATIU" -> "Geografic"; else -> "Tematic" }) })
                     }
-                }
-            }
-        }
-        if (availableSlots.isNotEmpty() && matrixRows.isNotEmpty()) {
-            item {
-                SectionSurface("MATRICE DE DOCUMENTARE", if (perspective == "TEMA") "Teme × timp" else "Spațiu × timp") {
-                    Hint("Fiecare celulă reprezintă numărul de afirmații indexate, nu numărul presupus de evenimente. Atinge o intersecție pentru filtrare.")
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                        Column {
-                            Row {
-                                Box(Modifier.width(116.dp).height(42.dp), contentAlignment = Alignment.CenterStart) {
-                                    Text(if (perspective == "TEMA") "TEMĂ" else "SPAȚIU", style = MaterialTheme.typography.labelSmall)
-                                }
-                                availableSlots.take(15).forEach { slot ->
-                                    Box(Modifier.width(98.dp).height(42.dp), contentAlignment = Alignment.Center) {
-                                        Text(slot.label, style = MaterialTheme.typography.labelSmall,
-                                            maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                    }
-                                }
-                            }
-                            matrixRows.take(12).forEach { row ->
-                                Row(verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-                                    Box(Modifier.width(116.dp).height(49.dp), contentAlignment = Alignment.CenterStart) {
-                                        Text("${"↳ ".repeat(row.depth.coerceAtMost(2))}${row.name}",
-                                            maxLines = 2, overflow = TextOverflow.Ellipsis,
-                                            style = MaterialTheme.typography.labelSmall)
-                                    }
-                                    val counts = matrixCounts[row.id].orEmpty()
-                                    availableSlots.take(15).forEachIndexed { index, slot ->
-                                        val count = counts.getOrElse(index) { 0 }
-                                        Surface(
-                                            onClick = {
-                                                onTimeKey(slot.key)
-                                                if (perspective == "TEMA") onTopicIds(setOf(row.id))
-                                                else onPlaceIds(setOf(row.id))
-                                            },
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = if (count > 0) MaterialTheme.colorScheme.primaryContainer
-                                                else MaterialTheme.colorScheme.surface,
-                                            modifier = Modifier.width(98.dp).height(49.dp).padding(2.dp)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Text(if (count == 0) "·" else count.toString(),
-                                                    color = if (count > 0) MaterialTheme.colorScheme.onPrimaryContainer
-                                                        else MaterialTheme.colorScheme.outline,
-                                                    style = MaterialTheme.typography.labelMedium)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (matrixRows.size > 12) Hint("Afișate primele 12 ramuri. Poți găsi orice altă regiune sau temă din filtrele de sus.")
                 }
             }
         }
