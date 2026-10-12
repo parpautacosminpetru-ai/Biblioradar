@@ -9,7 +9,7 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class AtlasSnapshot(
     val format: String = "atlas-istoric-json",
-    val schemaVersion: Int = 2,
+    val schemaVersion: Int = 3,
     val entities: List<HistoricalEntity>,
     val sources: List<HistoricalSource>,
     val assertions: List<HistoricalAssertion>,
@@ -19,7 +19,9 @@ data class AtlasSnapshot(
     val relations: List<EntityRelation>,
     val revisions: List<RevisionEntry> = emptyList(),
     val drafts: List<ResearchDraft> = emptyList(),
-    val draftClaims: List<DraftClaimLink> = emptyList()
+    val draftClaims: List<DraftClaimLink> = emptyList(),
+    val studyCards: List<StudyCard> = emptyList(),
+    val studyReviews: List<StudyReview> = emptyList()
 )
 
 class BackupService(private val db: AtlasDatabase) {
@@ -37,7 +39,9 @@ class BackupService(private val db: AtlasDatabase) {
             relations = dao.allRelations(),
             revisions = dao.allRevisions(),
             drafts = dao.allDrafts(),
-            draftClaims = dao.allDraftClaimLinks()
+            draftClaims = dao.allDraftClaimLinks(),
+            studyCards = dao.allStudyCards(),
+            studyReviews = dao.allStudyReviews()
         ))
     }
 
@@ -45,9 +49,11 @@ class BackupService(private val db: AtlasDatabase) {
      *  A failed transaction rolls back every delete. */
     suspend fun importReplaceJson(raw: String) {
         val data = json.decodeFromString<AtlasSnapshot>(raw)
-        require(data.format == "atlas-istoric-json" && data.schemaVersion in 1..2) { "Format sau versiune necunoscută" }
+        require(data.format == "atlas-istoric-json" && data.schemaVersion in 1..3) { "Format sau versiune necunoscută" }
         validate(data)
         db.withTransaction {
+            dao.clearAllStudyReviews()
+            dao.clearAllStudyCards()
             dao.clearRevisions()
             dao.clearAllDraftClaimLinks()
             dao.clearDrafts()
@@ -72,6 +78,8 @@ class BackupService(private val db: AtlasDatabase) {
             data.assertions.forEach { dao.insertAssertion(it) }
             data.assertionEntities.forEach { dao.addAssertionEntityLink(it) }
             data.assertionTopics.forEach { dao.addAssertionTopicLink(it) }
+            data.studyCards.forEach { dao.insertStudyCard(it) }
+            data.studyReviews.forEach { dao.insertStudyReview(it) }
             data.relations.forEach { dao.insertRelation(it) }
             data.drafts.forEach { dao.insertDraft(it) }
             data.draftClaims.forEach { dao.insertDraftClaimLink(it) }
@@ -85,6 +93,17 @@ class BackupService(private val db: AtlasDatabase) {
         val aIds = data.assertions.map { it.id }.toSet()
         val tIds = data.topics.map { it.id }.toSet()
         val dIds = data.drafts.map { it.id }.toSet()
+        val cIds = data.studyCards.map { it.id }.toSet()
+        val rIds = data.studyReviews.map { it.id }.toSet()
+        require(data.studyCards.size == cIds.size && data.studyReviews.size == rIds.size) {
+            "Identificatori de învățare duplicați"
+        }
+        require(data.studyCards.all { it.assertionId in aIds && it.answerMode in setOf("PASAJ", "DATA", "LOC") }) {
+            "Fișă de învățare fără afirmație ori mod recunoscut"
+        }
+        require(data.studyReviews.all { it.cardId in cIds && it.grade in 0..3 }) {
+            "Recapitulare fără fișă sau evaluare invalidă"
+        }
         require(data.drafts.size == dIds.size) { "ID-uri duplicate în atelier" }
         require(data.draftClaims.all { it.draftId in dIds && it.assertionId in aIds }) { "Referință invalidă în atelier" }
         require(listOf(data.entities.size == eIds.size, data.sources.size == sIds.size,
