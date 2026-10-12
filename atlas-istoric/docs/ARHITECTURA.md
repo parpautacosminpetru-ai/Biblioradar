@@ -50,3 +50,7 @@ Stocarea locală SQLite poate fi extinsă, însă prezentarea colecțiilor într
 - Filtrele didactice reutilizează nestingul temporal, geografic și tematic; precizia incompletă este păstrată.
 - Migrarea incrementală `MIGRATION_2_3` păstrează toate tabelele anterioare; exportul JSON v3 include progresul didactic.
 - Exercițiile de tip hartă, aliniere cronologică și confruntare critică a două surse sunt planificate pentru versiuni ulterioare.
+
+## Laboratorul Sursei v1.4
+
+Pagina originală (`DocumentPage`) are SHA-256 și cale relativă privată. `PageAnnotation` referă selecții exacte din transcrierea verificată, păstrând și contextul. `AnnotationClaimLink` conectează pasajul adnotat cu o afirmație documentară de aceeași sursă. Toate cele trei tabele sunt separate de sinteze și exercițiile didactice. `AtlasArchiveZip` exportă/restaurează originalele și metadatele; importa ZIP integral verifică amprentele înaintea tranzacției care înlocuiește baza.
