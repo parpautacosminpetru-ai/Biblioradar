@@ -6,6 +6,8 @@ import ro.atlasistoric.data.EntityRelation
 import ro.atlasistoric.data.HistoricalAssertion
 import ro.atlasistoric.data.HistoricalTopic
 
+const val UNCLASSIFIED_TOPIC_ID = "ATLAS:UNCLASSIFIED_TOPIC"
+
 /** A root topic is a user-defined index; child topics are nested categories. */
 data class CategoryBandRow(
     val id: String,
@@ -93,7 +95,12 @@ fun indexCategoryBands(
             if (!inTime) continue
             if (selectedPlaceIds.isNotEmpty() &&
                 placesByAssertion[claim.id].orEmpty().none { it in placeClosure }) continue
-            for (linkedTopicId in topicsByAssertion[claim.id].orEmpty()) {
+            val linkedTopics = topicsByAssertion[claim.id].orEmpty()
+            if (linkedTopics.isEmpty()) {
+                buckets.getOrPut(UNCLASSIFIED_TOPIC_ID to slot.key) { linkedSetOf() }.add(claim.id)
+                visibleIds.add(claim.id)
+            }
+            for (linkedTopicId in linkedTopics) {
                 var current: String? = linkedTopicId
                 val seen = mutableSetOf<String>()
                 while (current != null && current in byId && seen.add(current)) {
