@@ -175,6 +175,33 @@ class AtlasRepository(private val db: AtlasDatabase) {
             dao.insertStudyReview(result.review)
         }
 
+    /**
+     * Persists a source-backed assertion AND its exact-document annotation in
+     * the same Room transaction. No dangling provenance link on a failed save.
+     */
+    suspend fun saveAssertionFromAnnotation(
+        item: HistoricalAssertion,
+        entityRoles: Map<String, String>,
+        topicIds: Set<String>,
+        updating: Boolean,
+        annotationId: String?
+    ) = db.withTransaction {
+        if (annotationId != null) {
+            val anno = dao.pageAnnotationById(annotationId) ?: error("Adnotarea nu există")
+            val page = dao.documentPageById(anno.pageId) ?: error("Pagina originală nu există")
+            require(page.sourceId == item.sourceId) {
+                "Sursa afirmației nu corespunde fotografiei originale"
+            }
+            require(item.page == page.pageLabel) {
+                "Pagina afirmației nu corespunde paginii documentare"
+            }
+        }
+        saveAssertion(item, entityRoles, topicIds, updating)
+        if (annotationId != null) {
+            dao.insertAnnotationClaimLink(AnnotationClaimLink(annotationId, item.id))
+        }
+    }
+
     suspend fun saveDraft(old: ResearchDraft?, item: ResearchDraft, claimIds: Set<String>) = db.withTransaction {
         if (old == null) dao.insertDraft(item)
         else {
