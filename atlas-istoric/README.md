@@ -15,6 +15,25 @@
 
 **Semnarea:** workflow-ul generează APK de test. Versiunile debug construite pe runneri diferiți pot avea semnături diferite; înainte de reinstalare exportă baza de date și păstrează o copie. Folosirea îndelungată necesită configurarea unei chei release stabile.
 
+## Nou în v1.3 — modul Învățare
+
+Un nou ecran **Învățare din surse** transformă selectiv afirmațiile deja indexate în întrebări de repetare.
+**Nu creează copii ale dovezilor**: răspunsul este recitit din afirmația documentată și păstrează sursa, ediția și pagina.
+
+- **Din fișa afirmației:** „Creează întrebare de învățare”; se completează referința la pasajul original.
+- **Din Atlas:** „Învățare · exerciții din sursele mele”; poți adăuga și edita întrebări proprii.
+- **Moduri PASAJ, DATA și LOC:** răspunsul provine exclusiv din pasaj, data/intervalul sau localizarea explicit asociată afirmației.
+- **Recapitulare activă:** răspunzi din memorie într-un câmp temporar, dezvălui pasajul și te autoevaluezi (Din nou, Greu, Bine, Ușor).
+- **Repetare spațiată offline:** datele scadente sunt calculate deterministic, iar fiecare evaluare se păstrează în jurnal.
+- **Filtre:** poți învăța întregul atlas sau numai timpul, teritoriile și temele selectate deja; datele cu precizie incompletă nu primesc artificial o lună/zi.
+- **Suspendare și editare:** o fișă poate fi modificată sau suspendată; istoricul reviziilor rămâne disponibil.
+- **Copie de siguranță:** exportul JSON schema v3 include fișele și jurnalul; importul v1/v2 păstrează compatibilitatea.
+- **Migrare Room 2→3:** adaugă tabelele de învățare fără ștergerea surselor, afirmațiilor și sintezelor existente.
+
+Învățarea nu declară „adevăruri” în locul surselor și nu evaluează automat corectitudinea unui răspuns liber.
+Repetarea este ghidată de autoevaluare. Actualizările APK debug construite pe runneri diferiți pot avea semnături incompatibile;
+exportă baza înainte de orice reinstalare și configurează semnare release stabilă înainte de utilizare permanentă.
+
 ## Ce este Atlas Istoric
 
 Un atlas personal pentru cercetare documentară, cu o singură bază locală și trei perspective suprapuse: **TIMP × SPAȚIU × TEMĂ**. O afirmație se introduce o singură dată, dar poate participa la oricâte intersecții, fără copierea pasajului. Un actor are ID stabil; afirmațiile distincte ale surselor despre același actor sunt păstrate distinct.
