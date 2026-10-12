@@ -17,7 +17,8 @@ import ro.atlasistoric.ocr.suggestOcrLinks
 @Composable
 fun AssertionEditor(
     old: HistoricalAssertion?, initialOcr: String,
-    preferredSourceId: String?, preferredEntityId: String?, preferredTopicId: String?,
+    preferredSourceId: String?, preferredPageLabel: String?,
+    preferredEntityId: String?, preferredTopicId: String?,
     sources: List<HistoricalSource>, entities: List<HistoricalEntity>, topics: List<HistoricalTopic>,
     oldEntityLinks: List<AssertionEntityLink>, oldTopicLinks: List<AssertionTopicLink>,
     onNeedsSource: () -> Unit,
@@ -38,7 +39,9 @@ fun AssertionEditor(
     var entitySearch by remember { mutableStateOf("") }
     var topicSearch by remember { mutableStateOf("") }
     var passage by remember(old?.id, initialOcr) { mutableStateOf(old?.passage ?: initialOcr) }
-    var page by remember(old?.id) { mutableStateOf(old?.page.orEmpty()) }
+    var page by remember(old?.id, preferredPageLabel) {
+        mutableStateOf(old?.page ?: preferredPageLabel.orEmpty())
+    }
     var section by remember(old?.id) { mutableStateOf(old?.section.orEmpty()) }
     var periodLabel by remember(old?.id) { mutableStateOf(old?.periodLabel.orEmpty()) }
     var start by remember(old?.id) { mutableStateOf(old?.yearStart?.toString().orEmpty()) }
@@ -239,6 +242,8 @@ fun AssertionDetail(
     item: HistoricalAssertion, sources: List<HistoricalSource>, entities: List<HistoricalEntity>,
     topics: List<HistoricalTopic>, entityLinks: List<AssertionEntityLink>, topicLinks: List<AssertionTopicLink>,
     revisions: List<RevisionEntry>,
+    linkedOriginalPages: List<DocumentPage> = emptyList(),
+    onOpenOriginal: (String) -> Unit = {},
     onEdit: () -> Unit,
     onStudy: () -> Unit
 ) {
@@ -249,6 +254,16 @@ fun AssertionDetail(
         Text("Afirmație documentată", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
         ElevatedCard {
             Text(item.passage, modifier = Modifier.padding(20.dp), style = MaterialTheme.typography.bodyLarge)
+        }
+        if (linkedOriginalPages.isNotEmpty()) {
+            Text("DOCUMENTUL ORIGINAL", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary)
+            linkedOriginalPages.distinctBy { it.id }.forEach { page ->
+                OutlinedButton(onClick = { onOpenOriginal(page.id) },
+                    modifier = Modifier.fillMaxWidth()) {
+                    Text("Deschide fotografia și adnotarea: pagina ${page.pageLabel}")
+                }
+            }
         }
         Text("REFERINȚA EXACTĂ", style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
