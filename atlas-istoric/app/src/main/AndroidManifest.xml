@@ -8,6 +8,15 @@
         android:label="Atlas Istoric"
         android:supportsRtl="true"
         android:theme="@style/Theme.AtlasIstoric">
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/atlas_camera_paths" />
+        </provider>
         <activity android:name=".MainActivity" android:exported="true"
             android:screenOrientation="unspecified">
             <intent-filter>
