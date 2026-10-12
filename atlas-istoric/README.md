@@ -34,6 +34,19 @@ Un nou ecran **Învățare din surse** transformă selectiv afirmațiile deja in
 Repetarea este ghidată de autoevaluare. Actualizările APK debug construite pe runneri diferiți pot avea semnături incompatibile;
 exportă baza înainte de orice reinstalare și configurează semnare release stabilă înainte de utilizare permanentă.
 
+## Nou în v1.4 — Laboratorul Sursei
+
+- **Originalul fotografiat/importat** este copiat în stocarea privată a aplicației, identificat prin SHA-256 și asociat cu o sursă bibliografică și o pagină/filă.
+- **OCR offline** cu ML Kit: textul brut rămâne păstrat, iar transcrierea corectată este editabilă și verificabilă separat. Aceasta NU garantează extragere exhaustivă fără erori.
+- **Adnotare prin selecție pe transcrierea originalului**, cu ancore UTF-16, citat exact, context anterior/ulterior și tipul observației. Ambiguitățile după corecturi sunt marcate, nu „rezolvate” arbitrar.
+- **Afirmații cu proveniență:** o adnotare se poate transforma în afirmație în atlas; legătura, pagina și sursa sunt salvate atomic; din afirmație poți reveni la pagina originală.
+- **ZIP integral, verificabil:** export și import JSON + fotografiile originale, cu SHA-256 verificat înainte de înlocuirea bazei de date. Fișierele existente nu sunt suprascrise pe o restaurare eșuată.
+- **Import JSON fără pierdere:** dacă ai fotografii originale, importul/exportul simplu JSON este blocat în favoarea pachetului ZIP care le include.
+- **Migrare Room v3→v4**, cu teste SQL pentru referințe și duplicări.
+- **Limitări:** în v1.4 OCR-ul nu extrage semantic toate faptele singur, adnotările sunt ancorate în text (nu încă suprapuse pixel-cu-pixel pe fotografie), iar imaginile din ZIP nu sunt criptate. Acesta este în continuare un prototip testabil, nu un release profesional certificat.
+
+**Înainte de actualizare:** versiunile APK debug pot avea semnături diferite. Exportă o copie a datelor actuale înainte de reinstalare. Nu dezinstala aplicația până nu te asiguri că backupul se poate restaura.
+
 ## Ce este Atlas Istoric
 
 Un atlas personal pentru cercetare documentară, cu o singură bază locală și trei perspective suprapuse: **TIMP × SPAȚIU × TEMĂ**. O afirmație se introduce o singură dată, dar poate participa la oricâte intersecții, fără copierea pasajului. Un actor are ID stabil; afirmațiile distincte ale surselor despre același actor sunt păstrate distinct.
