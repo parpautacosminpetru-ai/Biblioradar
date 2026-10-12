@@ -45,6 +45,8 @@ interface AtlasDao {
     suspend fun pageAnnotationsByPage(pageId: String): List<PageAnnotation>
     @Query("SELECT * FROM annotation_claim_links")
     fun annotationClaimLinks(): Flow<List<AnnotationClaimLink>>
+    @Query("SELECT * FROM annotation_claim_links WHERE assertionId=:id")
+    suspend fun annotationLinksForAssertion(id: String): List<AnnotationClaimLink>
     @Query("SELECT * FROM document_pages WHERE id = :id LIMIT 1")
     suspend fun documentPageById(id: String): DocumentPage?
     @Query("SELECT * FROM page_annotations WHERE id = :id LIMIT 1")
