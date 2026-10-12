@@ -35,7 +35,8 @@ jobs:
       - name: Verify documentary migration
         run: python3 checks/sqlite_document_migration_check.py
       - name: Build and test
-        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug
+        # Also exercise the production build configuration WITHOUT uploading an unsigned release.
+        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease
       - name: Check APK
         run: |
           test -s app/build/outputs/apk/debug/app-debug.apk
