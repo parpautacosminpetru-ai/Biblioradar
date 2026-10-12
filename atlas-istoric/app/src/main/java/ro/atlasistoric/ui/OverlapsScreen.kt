@@ -68,7 +68,8 @@ fun OverlapsScreen(
     topicMatchAll: Boolean,
     onTopicMatchAll: (Boolean) -> Unit,
     onOpen: (String) -> Unit,
-    onBackToAtlas: () -> Unit
+    onBackToAtlas: () -> Unit,
+    onBands: () -> Unit
 ) {
     val periods = remember(assertions) { assertions.map { it.periodLabel } }
     val slots = remember(level, anchorYear, anchorMonth, periods) {
@@ -131,6 +132,9 @@ fun OverlapsScreen(
         verticalArrangement = Arrangement.spacedBy(9.dp)) {
         Text("Intersecțiile cunoașterii", style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+        OutlinedButton(onClick = onBands, modifier = Modifier.fillMaxWidth()) {
+            Text("Comută la benzi paralele pe categorii →")
+        }
         Text("Timp → pe orizontală · Spațiu → pe verticală · Temele → benzi colorate",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
