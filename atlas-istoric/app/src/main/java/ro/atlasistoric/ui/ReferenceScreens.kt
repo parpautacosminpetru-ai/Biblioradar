@@ -188,10 +188,11 @@ fun TopicsScreen(topics: List<HistoricalTopic>, onSave: (HistoricalTopic?, Histo
     }
 }
 
-@Composable fun TopicForm(old: HistoricalTopic?, topics: List<HistoricalTopic>, onDismiss: () -> Unit, onSave: (HistoricalTopic) -> Unit) {
+@Composable fun TopicForm(old: HistoricalTopic?, topics: List<HistoricalTopic>, onDismiss: () -> Unit,
+    initialParentId: String? = null, onSave: (HistoricalTopic) -> Unit) {
     var name by remember(old?.id) { mutableStateOf(old?.name.orEmpty()) }
     var description by remember(old?.id) { mutableStateOf(old?.description.orEmpty()) }
-    var parentId by remember(old?.id) { mutableStateOf(old?.parentId) }
+    var parentId by remember(old?.id, initialParentId) { mutableStateOf(old?.parentId ?: initialParentId) }
     // Avoid parent cycles even when changing an existing branch.
     val invalidParents = remember(topics, old?.id) {
         old?.let { ro.atlasistoric.util.descendantsOfTopic(it.id, topics) }.orEmpty()
