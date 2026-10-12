@@ -147,13 +147,23 @@ class DocumentRepository(private val context: Context, private val db: AtlasData
 
     suspend fun annotate(pageId: String, start: Int, end: Int, category: String, note: String) =
         withContext(Dispatchers.IO) {
-            require(category in setOf("AFIRMATIE", "PERSOANA", "LOC", "DATA", "NOTA", "INCERT")) {
+            require(category in setOf("AFIRMATIE", "PERSOANA", "LOC", "DATA", "NOTA", "INCERT",
+                "SEGMENT_VERIFICAT")) {
                 "Categorie de adnotare necunoscută"
             }
             db.withTransaction {
                 val page = dao.documentPageById(pageId) ?: error("Pagina nu există")
                 require(page.verifiedText.isNotEmpty()) { "Transcrie și verifică pagina înainte" }
+                if (category == "SEGMENT_VERIFICAT") require(page.status == "VERIFIED") {
+                    "Confirmă întâi transcrierea înainte să marchezi segmentele parcurse"
+                }
                 val annotation = selectedTextAnchor(pageId, page.verifiedText, start, end, category, note)
+                dao.pageAnnotationsByPage(pageId).firstOrNull {
+                    it.category == annotation.category &&
+                        it.exactQuote == annotation.exactQuote &&
+                        it.startOffset == annotation.startOffset &&
+                        it.endOffset == annotation.endOffset
+                }?.let { return@withTransaction it }
                 dao.insertPageAnnotation(annotation)
                 annotation
             }
