@@ -21,6 +21,22 @@ interface AtlasDao {
     fun assertionEntities(): Flow<List<AssertionEntityLink>>
     @Query("SELECT * FROM assertion_topics")
     fun assertionTopics(): Flow<List<AssertionTopicLink>>
+    @Query("SELECT * FROM study_cards ORDER BY dueAt ASC")
+    fun studyCards(): Flow<List<StudyCard>>
+    @Query("SELECT * FROM study_reviews ORDER BY reviewedAt DESC")
+    fun studyReviews(): Flow<List<StudyReview>>
+    @Query("SELECT * FROM study_cards WHERE id=:id LIMIT 1")
+    suspend fun studyCardById(id: String): StudyCard?
+    @Query("SELECT * FROM study_cards")
+    suspend fun allStudyCards(): List<StudyCard>
+    @Query("SELECT * FROM study_reviews")
+    suspend fun allStudyReviews(): List<StudyReview>
+    @Insert(onConflict = OnConflictStrategy.ABORT) suspend fun insertStudyCard(item: StudyCard)
+    @Update suspend fun updateStudyCard(item: StudyCard)
+    @Insert(onConflict = OnConflictStrategy.ABORT) suspend fun insertStudyReview(item: StudyReview)
+    @Query("DELETE FROM study_reviews") suspend fun clearAllStudyReviews()
+    @Query("DELETE FROM study_cards") suspend fun clearAllStudyCards()
+
     @Query("SELECT * FROM research_drafts ORDER BY updatedAt DESC")
     fun drafts(): Flow<List<ResearchDraft>>
     @Query("SELECT * FROM draft_claim_links")
