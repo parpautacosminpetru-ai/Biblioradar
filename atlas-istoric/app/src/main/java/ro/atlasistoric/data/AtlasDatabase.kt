@@ -12,9 +12,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         HistoricalEntity::class, HistoricalSource::class, HistoricalAssertion::class,
         HistoricalTopic::class, AssertionEntityLink::class, AssertionTopicLink::class,
         EntityRelation::class, RevisionEntry::class, ResearchDraft::class, DraftClaimLink::class,
-        StudyCard::class, StudyReview::class
+        StudyCard::class, StudyReview::class,
+        DocumentPage::class, PageAnnotation::class, AnnotationClaimLink::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AtlasDatabase : RoomDatabase() {
@@ -75,13 +76,70 @@ abstract class AtlasDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_study_reviews_reviewedAt ON study_reviews (reviewedAt)")
             }
         }
+        // Version four adds the documentary laboratory without overwriting historical records.
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS document_pages (
+                        id TEXT NOT NULL,
+                        sourceId TEXT NOT NULL,
+                        pageLabel TEXT NOT NULL,
+                        originalName TEXT NOT NULL,
+                        mimeType TEXT NOT NULL,
+                        storagePath TEXT NOT NULL,
+                        sha256 TEXT NOT NULL,
+                        originalOcrText TEXT NOT NULL,
+                        verifiedText TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(id),
+                        FOREIGN KEY(sourceId) REFERENCES historical_sources(id)
+                            ON UPDATE NO ACTION ON DELETE RESTRICT
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_document_pages_sourceId ON document_pages (sourceId)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_document_pages_sourceId_sha256 ON document_pages (sourceId, sha256)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS page_annotations (
+                        id TEXT NOT NULL,
+                        pageId TEXT NOT NULL,
+                        startOffset INTEGER NOT NULL,
+                        endOffset INTEGER NOT NULL,
+                        exactQuote TEXT NOT NULL,
+                        contextBefore TEXT NOT NULL,
+                        contextAfter TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        note TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(id),
+                        FOREIGN KEY(pageId) REFERENCES document_pages(id)
+                            ON UPDATE NO ACTION ON DELETE RESTRICT
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_page_annotations_pageId ON page_annotations (pageId)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS annotation_claim_links (
+                        annotationId TEXT NOT NULL,
+                        assertionId TEXT NOT NULL,
+                        PRIMARY KEY(annotationId, assertionId),
+                        FOREIGN KEY(annotationId) REFERENCES page_annotations(id)
+                            ON UPDATE NO ACTION ON DELETE RESTRICT,
+                        FOREIGN KEY(assertionId) REFERENCES historical_assertions(id)
+                            ON UPDATE NO ACTION ON DELETE RESTRICT
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_annotation_claim_links_assertionId ON annotation_claim_links (assertionId)")
+            }
+        }
         @Volatile private var instance: AtlasDatabase? = null
         fun get(context: Context): AtlasDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(
                 context.applicationContext,
                 AtlasDatabase::class.java,
                 "atlas_istoric.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
         }
     }
 }
