@@ -13,12 +13,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ro.atlasistoric.data.AtlasDatabase
 import ro.atlasistoric.data.BackupService
+import ro.atlasistoric.data.AtlasArchiveZip
 
 @Composable
 fun BackupScreen(database: AtlasDatabase, onNotice: (String) -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val backup = remember(database) { BackupService(database) }
+    val archive = remember(database, ctx) { AtlasArchiveZip(ctx, database) }
+    val documentPages by database.dao().documentPages().collectAsState(initial = emptyList())
     val dbSize = remember(ctx) {
         val db = ctx.getDatabasePath("atlas_istoric.db")
         listOf(db, java.io.File(db.path + "-wal"), java.io.File(db.path + "-shm")).sumOf { it.length() }
@@ -26,6 +29,21 @@ fun BackupScreen(database: AtlasDatabase, onNotice: (String) -> Unit) {
     val availableDisk = remember(ctx) { ctx.filesDir.usableSpace }
     var busy by remember { mutableStateOf(false) }
     var pendingImport by remember { mutableStateOf<String?>(null) }
+    var pendingZip by remember { mutableStateOf<android.net.Uri?>(null) }
+    val zipExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+        if (uri != null) scope.launch {
+            busy = true
+            try {
+                val count = withContext(Dispatchers.IO) { archive.exportZip(uri) }
+                onNotice("Arhivă ZIP completă exportată, inclusiv $count fotografii originale")
+            } catch (e: Exception) {
+                onNotice("Export ZIP eșuat: ${e.localizedMessage}")
+            } finally { busy = false }
+        }
+    }
+    val zipImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) pendingZip = uri
+    }
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) scope.launch {
             busy = true
@@ -51,6 +69,32 @@ fun BackupScreen(database: AtlasDatabase, onNotice: (String) -> Unit) {
             } catch (e: Exception) { onNotice("Citire eșuată: ${e.localizedMessage}") }
             finally { busy = false }
         }
+    }
+    if (pendingZip != null) {
+        AlertDialog(onDismissRequest = { pendingZip = null },
+            title = { Text("Restabilești arhiva ZIP completă?") },
+            text = {
+                Text("Importul înlocuiește baza actuală. Imaginile și identificatorii din ZIP sunt verificați înainte. " +
+                    "Exportă mai întâi o copie a datelor actuale.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val uri = pendingZip!!
+                    pendingZip = null
+                    scope.launch {
+                        busy = true
+                        try {
+                            val count = withContext(Dispatchers.IO) { archive.importZip(uri) }
+                            onNotice("Arhivă ZIP restaurată cu $count imagini verificate")
+                        } catch (e: Exception) {
+                            onNotice("Import ZIP respins: ${e.localizedMessage}")
+                        } finally { busy = false }
+                    }
+                }) { Text("Înlocuiește din ZIP", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingZip = null }) { Text("Anulează") }
+            })
     }
     if (pendingImport != null) {
         AlertDialog(onDismissRequest = { pendingImport = null },
@@ -79,9 +123,29 @@ fun BackupScreen(database: AtlasDatabase, onNotice: (String) -> Unit) {
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         ElevatedCard {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Exportă arhiva", style = MaterialTheme.typography.titleMedium)
-                Text("JSON complet, cu identificatori, surse, pagini, afirmații și toate relațiile.")
-                Button(enabled = !busy, onClick = { exporter.launch("atlas-istoric-backup.json") }) { Text("Exportă JSON") }
+                Text("Arhivă COMPLETĂ ZIP", style = MaterialTheme.typography.titleMedium)
+                Text("Include baza, OCR-ul, adnotările, sintezele, fișele de învățare și fotografiile originale.")
+                Text("${documentPages.size} fotografii în baza locală · verificare SHA-256 la import",
+                    style = MaterialTheme.typography.labelSmall)
+                Button(enabled = !busy, onClick = {
+                    zipExporter.launch("atlas-istoric-arhiva-completa.zip")
+                }) { Text("Exportă ZIP cu imagini") }
+                OutlinedButton(enabled = !busy, onClick = {
+                    zipImporter.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+                }) { Text("Restabilește ZIP complet") }
+                Text("ZIP-ul nu este criptat. Păstrează-l într-un loc protejat.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error)
+            }
+        }
+        OutlinedCard {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("JSON — doar arhiva fără fotografii", style = MaterialTheme.typography.titleMedium)
+                Text("Folosește-l numai dacă nu ai pagini fotografiate. Pentru cercetarea cu imagini, folosește ZIP.")
+                Button(enabled = !busy && documentPages.isEmpty(),
+                    onClick = { exporter.launch("atlas-istoric-backup.json") }) {
+                    Text("Exportă JSON fără imagini")
+                }
             }
         }
         OutlinedCard {
@@ -93,7 +157,7 @@ fun BackupScreen(database: AtlasDatabase, onNotice: (String) -> Unit) {
                 }
             }
         }
-        Hint("Imaginile paginilor nu sunt incluse în această primă arhivă: versiunea inițială salvează doar textul extras și metadatele.")
+        Hint("Importul JSON este blocat dacă există fotografii originale, pentru a preveni pierderea lor accidentală.")
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
     }
 }
