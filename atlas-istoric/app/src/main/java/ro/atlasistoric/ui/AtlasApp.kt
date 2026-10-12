@@ -16,7 +16,7 @@ import kotlinx.coroutines.withContext
 import ro.atlasistoric.data.*
 import ro.atlasistoric.ocr.CameraOcrScreen
 
-private enum class Screen { ATLAS, OVERLAPS, BANDS, STUDY, SOURCES, ENTITIES, TOPICS, RELATIONS, CAMERA, ASSERTION_EDITOR, ASSERTION_DETAIL, BACKUP, DRAFTS }
+private enum class Screen { ATLAS, OVERLAPS, BANDS, STUDY, LAB, SOURCES, ENTITIES, TOPICS, RELATIONS, CAMERA, ASSERTION_EDITOR, ASSERTION_DETAIL, BACKUP, DRAFTS }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +24,7 @@ fun AtlasApp() {
     val context = LocalContext.current
     val database = remember { AtlasDatabase.get(context) }
     val repo = remember { AtlasRepository(database) }
+    val documents = remember { DocumentRepository(context, database) }
     val dao = repo.dao
     val entities by dao.entities().collectAsState(initial = emptyList())
     val sources by dao.sources().collectAsState(initial = emptyList())
@@ -37,6 +38,9 @@ fun AtlasApp() {
     val draftLinks by dao.draftClaimLinks().collectAsState(initial = emptyList())
     val studyCards by dao.studyCards().collectAsState(initial = emptyList())
     val studyReviews by dao.studyReviews().collectAsState(initial = emptyList())
+    val documentPages by dao.documentPages().collectAsState(initial = emptyList())
+    val pageAnnotations by dao.pageAnnotations().collectAsState(initial = emptyList())
+    val annotationClaims by dao.annotationClaimLinks().collectAsState(initial = emptyList())
 
     var current by rememberSaveable { mutableStateOf(Screen.ATLAS.name) }
     var editId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -55,6 +59,9 @@ fun AtlasApp() {
     var search by rememberSaveable { mutableStateOf("") }
     var detailReturn by rememberSaveable { mutableStateOf(Screen.ATLAS.name) }
     var newStudyClaimId by rememberSaveable { mutableStateOf<String?>(null) }
+    var originalPageToOpen by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingAnnotationId by rememberSaveable { mutableStateOf<String?>(null) }
+    var preferredPageLabel by rememberSaveable { mutableStateOf<String?>(null) }
     var quickSource by remember { mutableStateOf(false) }
     var quickEntity by remember { mutableStateOf(false) }
     var quickTopic by remember { mutableStateOf(false) }
@@ -89,6 +96,7 @@ fun AtlasApp() {
                     Screen.OVERLAPS -> "Suprapuneri vizuale"
                     Screen.BANDS -> "Indici și benzi paralele"
                     Screen.STUDY -> "Învățare din surse"
+                    Screen.LAB -> "Laboratorul Sursei"
                     Screen.SOURCES -> "Biblioteca de surse"
                     Screen.ENTITIES -> "Identități istorice"
                     Screen.TOPICS -> "Arbore tematic"
@@ -100,7 +108,7 @@ fun AtlasApp() {
                     Screen.DRAFTS -> "Atelier de sinteză"
                 }, style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
-                    if (navigatingEditor || currentScreen == Screen.BACKUP || currentScreen == Screen.RELATIONS || currentScreen == Screen.DRAFTS || currentScreen == Screen.OVERLAPS || currentScreen == Screen.BANDS || currentScreen == Screen.STUDY) {
+                    if (navigatingEditor || currentScreen == Screen.BACKUP || currentScreen == Screen.RELATIONS || currentScreen == Screen.DRAFTS || currentScreen == Screen.OVERLAPS || currentScreen == Screen.BANDS || currentScreen == Screen.STUDY || currentScreen == Screen.CAMERA) {
                         IconButton(onClick = { current = when (currentScreen) {
                             Screen.RELATIONS -> Screen.ENTITIES.name
                             Screen.ASSERTION_DETAIL -> detailReturn
@@ -109,7 +117,15 @@ fun AtlasApp() {
                     }
                 },
                 actions = {
+                    if (currentScreen == Screen.LAB) {
+                        IconButton(onClick = { current = Screen.CAMERA.name }) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = "OCR live pentru pasaj")
+                        }
+                    }
                     if (currentScreen == Screen.ATLAS) {
+                        IconButton(onClick = { current = Screen.LAB.name }) {
+                            Icon(Icons.Default.DocumentScanner, contentDescription = "Laboratorul Sursei")
+                        }
                         IconButton(onClick = { current = Screen.STUDY.name }) {
                             Icon(Icons.Default.School, contentDescription = "Învățare și recapitulare")
                         }
@@ -142,7 +158,7 @@ fun AtlasApp() {
                         Triple(Screen.SOURCES, Icons.Default.MenuBook, "Surse"),
                         Triple(Screen.ENTITIES, Icons.Default.Hub, "Actori"),
                         Triple(Screen.TOPICS, Icons.Default.Layers, "Teme"),
-                        Triple(Screen.CAMERA, Icons.Default.CameraAlt, "OCR")
+                        Triple(Screen.LAB, Icons.Default.DocumentScanner, "Documente")
                     ).forEach { (screen, icon, title) ->
                         NavigationBarItem(
                             selected = currentScreen == screen,
@@ -274,6 +290,27 @@ fun AtlasApp() {
                         current = Screen.ATLAS.name
                     }
                 )
+                Screen.LAB -> DocumentLabScreen(
+                    repository = documents,
+                    sources = sources,
+                    pages = documentPages,
+                    annotations = pageAnnotations,
+                    links = annotationClaims,
+                    initialPageId = originalPageToOpen,
+                    onInitialPageConsumed = { originalPageToOpen = null },
+                    onNewSource = { quickSource = true },
+                    onExtract = { page, annotation ->
+                        pendingAnnotationId = annotation.id
+                        preferredSourceId = page.sourceId
+                        preferredPageLabel = page.pageLabel
+                        seedText = annotation.exactQuote
+                        editId = null
+                        current = Screen.ASSERTION_EDITOR.name
+                    },
+                    onNotice = { notice ->
+                        coroutine.launch { snackbar.showSnackbar(notice) }
+                    }
+                )
                 Screen.SOURCES -> SourcesScreen(
                     sources = sources, assertions = assertions,
                     onSave = { old, new -> execute {
@@ -308,6 +345,7 @@ fun AtlasApp() {
                     old = assertions.find { it.id == editId },
                     initialOcr = seedText,
                     preferredSourceId = preferredSourceId,
+                    preferredPageLabel = preferredPageLabel,
                     preferredEntityId = preferredEntityId,
                     preferredTopicId = preferredTopicId,
                     sources = sources, entities = entities, topics = topics,
@@ -325,9 +363,14 @@ fun AtlasApp() {
                                 preferredSourceId = item.sourceId
                                 preferredEntityId = null
                                 preferredTopicId = null
-                                current = Screen.ATLAS.name
+                                current = if (pendingAnnotationId != null) Screen.LAB.name else Screen.ATLAS.name
+                                pendingAnnotationId = null
+                                preferredPageLabel = null
                             }) {
-                                try { repo.saveAssertion(item, roles, selectedTopics, isUpdate) }
+                                try {
+                                    repo.saveAssertionFromAnnotation(
+                                        item, roles, selectedTopics, isUpdate, pendingAnnotationId)
+                                }
                                 finally { withContext(Dispatchers.Main) { savingAssertion = false } }
                             }
                         }
@@ -338,6 +381,17 @@ fun AtlasApp() {
                         item = detailAssertion, sources = sources, entities = entities, topics = topics,
                         entityLinks = eLinks, topicLinks = tLinks,
                         revisions = revisions.filter { it.recordType == "ASSERTION" && it.recordId == detailAssertion.id },
+                        linkedOriginalPages = documentPages.filter { page ->
+                            pageAnnotations.any { anno ->
+                                anno.pageId == page.id && annotationClaims.any { link ->
+                                    link.annotationId == anno.id && link.assertionId == detailAssertion.id
+                                }
+                            }
+                        },
+                        onOpenOriginal = { pageId ->
+                            originalPageToOpen = pageId
+                            current = Screen.LAB.name
+                        },
                         onEdit = { current = Screen.ASSERTION_EDITOR.name },
                         onStudy = {
                             newStudyClaimId = detailAssertion.id
