@@ -105,8 +105,18 @@ fun BackupScreen(database: AtlasDatabase, onNotice: (String) -> Unit) {
         AlertDialog(onDismissRequest = { pendingProtectedImport = null },
             title = { Text("Restabilești arhiva protejată?") },
             text = {
-                Text("Se verifică parola și autentificarea AES-GCM înainte de a înlocui baza de date. " +
-                    "Păstrează o copie verificată a datelor curente.")
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Se verifică parola și autentificarea AES-GCM înainte de a înlocui baza de date. " +
+                        "Păstrează o copie verificată a datelor curente.")
+                    OutlinedTextField(
+                        value = archivePassword,
+                        onValueChange = { archivePassword = it },
+                        label = { Text("Parola de decriptare") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
             },
             confirmButton = {
                 TextButton(enabled = !busy && archivePassword.length >= 12, onClick = {
