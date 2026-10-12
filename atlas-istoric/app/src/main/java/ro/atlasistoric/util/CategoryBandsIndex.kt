@@ -45,9 +45,18 @@ fun categoryBandRows(
     val roots = topics.filter { it.parentId == null || it.parentId !in byId }
         .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
     roots.forEach { visit(it.id, 0, it.id) }
-    // Keep data with corrupt/detached ancestry discoverable, never silently discard it.
-    topics.filter { it.id !in visited }.forEach { topic ->
-        if (topic.parentId !in collapsedIds) visit(topic.id, 0, topic.id)
+    // Keep truly detached/cyclic data visible but respect collapsed ancestor branches.
+    fun beneathCollapsed(id: String): Boolean {
+        var parent = byId[id]?.parentId
+        val seen = mutableSetOf<String>()
+        while (parent != null && seen.add(parent)) {
+            if (parent in collapsedIds) return true
+            parent = byId[parent]?.parentId
+        }
+        return false
+    }
+    topics.filter { it.id !in visited && !beneathCollapsed(it.id) }.forEach { topic ->
+        visit(topic.id, 0, topic.id)
     }
     return rows
 }
