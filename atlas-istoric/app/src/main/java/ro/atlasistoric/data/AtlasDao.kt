@@ -41,6 +41,8 @@ interface AtlasDao {
     fun documentPages(): Flow<List<DocumentPage>>
     @Query("SELECT * FROM page_annotations ORDER BY createdAt DESC")
     fun pageAnnotations(): Flow<List<PageAnnotation>>
+    @Query("SELECT * FROM page_annotations WHERE pageId=:pageId")
+    suspend fun pageAnnotationsByPage(pageId: String): List<PageAnnotation>
     @Query("SELECT * FROM annotation_claim_links")
     fun annotationClaimLinks(): Flow<List<AnnotationClaimLink>>
     @Query("SELECT * FROM document_pages WHERE id = :id LIMIT 1")
