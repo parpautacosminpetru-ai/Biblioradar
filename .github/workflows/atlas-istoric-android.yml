@@ -34,8 +34,6 @@ jobs:
         run: python3 checks/sqlite_learning_migration_check.py
       - name: Verify documentary migration
         run: python3 checks/sqlite_document_migration_check.py
-      - name: Verify learning migration
-        run: python3 checks/sqlite_learning_migration_check.py
       - name: Build and test
         run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug
       - name: Check APK
