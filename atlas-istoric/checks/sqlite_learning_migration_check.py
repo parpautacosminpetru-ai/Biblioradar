@@ -9,7 +9,7 @@ from pathlib import Path
 
 source = Path(__file__).resolve().parents[1] / "app/src/main/java/ro/atlasistoric/data/AtlasDatabase.kt"
 txt = source.read_text(encoding="utf-8")
-snippet = txt.split("private val MIGRATION_2_3 =", 1)[1].split("@Volatile", 1)[0]
+snippet = txt.split("private val MIGRATION_2_3 =", 1)[1].split("private val MIGRATION_3_4 =", 1)[0].split("@Volatile", 1)[0]
 sqls = re.findall(r'db\.execSQL\(\s*"""(.*?)"""\.trimIndent\(\)\s*\)', snippet, re.DOTALL)
 sqls += re.findall(r'db\.execSQL\("([^"]+)"\)', snippet)
 assert len(sqls) == 6, f"Unexpected schema statements: {len(sqls)}"
