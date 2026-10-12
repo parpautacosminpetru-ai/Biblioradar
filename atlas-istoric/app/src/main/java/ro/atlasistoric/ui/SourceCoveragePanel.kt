@@ -92,7 +92,7 @@ fun SourceCoveragePanel(
                             Button(onClick = { onVerifySegment(w) },
                                 modifier = Modifier.weight(1f),
                                 enabled = page.status == "VERIFIED" &&
-                                    !reviewed && !busy && w.text.isNotBlank()) {
+                                    !reviewed && !busy) {
                                 Text(if (reviewed) "Verificat" else "Confirmă")
                             }
                         }
