@@ -73,6 +73,8 @@ data class OverlapIndex(
     fun cell(placeId: String, timeKey: String) = cells[placeId to timeKey] ?: EMPTY_CELL
 }
 private val EMPTY_CELL = OverlapCell(emptyList(), emptyList(), 0)
+const val UNKNOWN_TIME_KEY = "ATLAS:UNKNOWN_TIME"
+const val UNKNOWN_PLACE_ID = "ATLAS:UNKNOWN_PLACE"
 
 /** The palette uses top-level themes; nested child themes keep their actual classification. */
 fun rootTopic(id: String, topics: Map<String, HistoricalTopic>): String {
@@ -115,12 +117,16 @@ fun buildOverlapIndex(
     val output = mutableMapOf<Pair<String, String>, OverlapCell>()
     for (slot in slots) {
         val inTime = eligible.filter {
-            slot.matches(it.yearStart, it.yearEnd, it.month, it.day, it.periodLabel)
+            (if (slot.key == UNKNOWN_TIME_KEY)
+                it.yearStart == null && it.yearEnd == null && it.periodLabel.isBlank()
+            else slot.matches(it.yearStart, it.yearEnd, it.month, it.day, it.periodLabel))
         }
         for (placeId in uniquePlaces) {
-            val nested = descendantsOfPlace(placeId, relations, slot.from, slot.through)
+            val nested = if (placeId == UNKNOWN_PLACE_ID) emptySet()
+                else descendantsOfPlace(placeId, relations, slot.from, slot.through)
             val inPlace = inTime.filter { claim ->
-                entitiesByClaim[claim.id].orEmpty().any { it in nested }
+                if (placeId == UNKNOWN_PLACE_ID) entitiesByClaim[claim.id].isNullOrEmpty()
+                else entitiesByClaim[claim.id].orEmpty().any { it in nested }
             }
             if (inPlace.isEmpty()) continue
             val ids = inPlace.map { it.id }.distinct()
