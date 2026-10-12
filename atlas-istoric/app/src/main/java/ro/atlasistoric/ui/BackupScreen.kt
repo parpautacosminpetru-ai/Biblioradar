@@ -25,7 +25,7 @@ fun BackupScreen(database: AtlasDatabase, onNotice: (String) -> Unit) {
     val scope = rememberCoroutineScope()
     val backup = remember(database) { BackupService(database) }
     val archive = remember(database, ctx) { AtlasArchiveZip(ctx, database) }
-    val protected = remember(database, ctx) { ProtectedArchive(ctx, database) }
+    val protectedArchive = remember(database, ctx) { ProtectedArchive(ctx, database) }
     var archivePassword by remember { mutableStateOf("") }
     var pendingProtectedImport by remember { mutableStateOf<android.net.Uri?>(null) }
     var revealPassword by remember { mutableStateOf(false) }
@@ -37,7 +37,7 @@ fun BackupScreen(database: AtlasDatabase, onNotice: (String) -> Unit) {
             val pass = archivePassword.toCharArray()
             try {
                 val count = withContext(Dispatchers.IO) {
-                    protected.exportEncrypted(uri, pass)
+                    protectedArchive.exportEncrypted(uri, pass)
                 }
                 onNotice("Arhiva .atlas a fost criptată, cu $count imagini originale")
             } catch (e: Exception) {
@@ -127,7 +127,7 @@ fun BackupScreen(database: AtlasDatabase, onNotice: (String) -> Unit) {
                         val pass = archivePassword.toCharArray()
                         try {
                             val count = withContext(Dispatchers.IO) {
-                                protected.importEncrypted(uri, pass)
+                                protectedArchive.importEncrypted(uri, pass)
                             }
                             onNotice("Arhivă protejată restaurată: $count imagini")
                         } catch (e: Exception) {
