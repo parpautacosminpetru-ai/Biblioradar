@@ -33,3 +33,22 @@
 - [ ] Configurează cheia stabilă pentru actualizări, testează update semnat cu aceeași cheie fără pierderea datelor.
 
 **Până la trecerea scenariilor de mai sus, codul este un candidat de release, nu o aplicație certificată drept complet testată.**
+
+
+## Teste de acceptare obligatorii — Laboratorul Sursei v1.4
+
+- [ ] Deschide Laborator, creează sursa, introdu fila exactă și importă o fotografie JPG/PNG.
+- [ ] Fotografiază o pagină prin Camera Android; imaginea originală trebuie să se deschidă din aplicație după relansare.
+- [ ] Folosește OCR offline, salvează transcrierea corectată și compar-o cu textul OCR brut neschimbat.
+- [ ] Adnotează pasajul selectat; schimbă numai textul dinaintea fragmentului, apoi verifică reancorarea deterministă.
+- [ ] Introdu un citat repetat și editează textul astfel încât ancora să fie ambiguă: aplicația trebuie să ceară verificare, nu să inventeze altă ancoră.
+- [ ] Creează o afirmație din adnotare; pagina și sursa trebuie completate; după salvare deschide fișa și revino la imaginea originală.
+- [ ] Încearcă reimportul aceleiași imagini în aceeași sursă. Nu trebuie creată o a doua pagină cu același SHA-256.
+- [ ] Exportă ZIP complet. Verifică prezența `atlas.json` și a imaginilor `pages/<uuid>.<ext>`, apoi importă pe un dispozitiv de test.
+- [ ] Deteriorează un octet al unei imagini într-o arhivă ZIP de test. Importul trebuie respins **fără să schimbe baza existentă**.
+- [ ] Încearcă export/import JSON simplu după stocarea unei imagini: aplicația trebuie să îl blocheze explicit.
+- [ ] Revino la versiunea 1.3 doar într-o copie de test, niciodată pe arhiva reală, pentru a evita incompatibilitatea schemei bazei.
+- [ ] Testează imagini mari, cărți cu tipar istoric, pagini cu două coloane și note de subsol; consemnează erorile OCR.
+- [ ] Testează un APK **semnat cu cheie release stabilă**, instalat peste versiunea anterioară, păstrând toate sursele și fotografiile.
+
+Aceste teste manuale nu sunt echivalente cu testele Gradle/SQLite și nu trebuie declarate trecute fără dispozitive Android reale.
