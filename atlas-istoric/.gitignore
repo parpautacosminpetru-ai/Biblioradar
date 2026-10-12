@@ -1,0 +1,12 @@
+.gradle/
+.idea/
+local.properties
+*.iml
+build/
+app/build/
+*.apk
+*.aab
+*.db
+*.db-shm
+*.db-wal
+.DS_Store
