@@ -16,7 +16,7 @@ import kotlinx.coroutines.withContext
 import ro.atlasistoric.data.*
 import ro.atlasistoric.ocr.CameraOcrScreen
 
-private enum class Screen { ATLAS, OVERLAPS, SOURCES, ENTITIES, TOPICS, RELATIONS, CAMERA, ASSERTION_EDITOR, ASSERTION_DETAIL, BACKUP, DRAFTS }
+private enum class Screen { ATLAS, OVERLAPS, BANDS, SOURCES, ENTITIES, TOPICS, RELATIONS, CAMERA, ASSERTION_EDITOR, ASSERTION_DETAIL, BACKUP, DRAFTS }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,6 +84,7 @@ fun AtlasApp() {
                 title = { Text(when (currentScreen) {
                     Screen.ATLAS -> "ATLAS ISTORIC"
                     Screen.OVERLAPS -> "Suprapuneri vizuale"
+                    Screen.BANDS -> "Indici și benzi paralele"
                     Screen.SOURCES -> "Biblioteca de surse"
                     Screen.ENTITIES -> "Identități istorice"
                     Screen.TOPICS -> "Arbore tematic"
@@ -95,7 +96,7 @@ fun AtlasApp() {
                     Screen.DRAFTS -> "Atelier de sinteză"
                 }, style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
-                    if (navigatingEditor || currentScreen == Screen.BACKUP || currentScreen == Screen.RELATIONS || currentScreen == Screen.DRAFTS || currentScreen == Screen.OVERLAPS) {
+                    if (navigatingEditor || currentScreen == Screen.BACKUP || currentScreen == Screen.RELATIONS || currentScreen == Screen.DRAFTS || currentScreen == Screen.OVERLAPS || currentScreen == Screen.BANDS) {
                         IconButton(onClick = { current = when (currentScreen) {
                             Screen.RELATIONS -> Screen.ENTITIES.name
                             Screen.ASSERTION_DETAIL -> detailReturn
@@ -105,6 +106,9 @@ fun AtlasApp() {
                 },
                 actions = {
                     if (currentScreen == Screen.ATLAS) {
+                        IconButton(onClick = { current = Screen.BANDS.name }) {
+                            Icon(Icons.Default.ViewAgenda, contentDescription = "Indici și benzi paralele")
+                        }
                         IconButton(onClick = { current = Screen.OVERLAPS.name }) {
                             Icon(Icons.Default.GridView, contentDescription = "Vezi suprapunerile vizuale")
                         }
@@ -124,7 +128,7 @@ fun AtlasApp() {
             )
         },
         bottomBar = {
-            if (!navigatingEditor && currentScreen != Screen.BACKUP && currentScreen != Screen.RELATIONS && currentScreen != Screen.DRAFTS && currentScreen != Screen.OVERLAPS) {
+            if (!navigatingEditor && currentScreen != Screen.BACKUP && currentScreen != Screen.RELATIONS && currentScreen != Screen.DRAFTS && currentScreen != Screen.OVERLAPS && currentScreen != Screen.BANDS) {
                 NavigationBar {
                     listOf(
                         Triple(Screen.ATLAS, Icons.Default.Timeline, "Atlas"),
@@ -177,7 +181,8 @@ fun AtlasApp() {
                         editId = it
                         current = Screen.ASSERTION_DETAIL.name
                     },
-                    onOverlaps = { current = Screen.OVERLAPS.name }
+                    onOverlaps = { current = Screen.OVERLAPS.name },
+                    onBands = { current = Screen.BANDS.name }
                 )
                 Screen.OVERLAPS -> OverlapsScreen(
                     assertions = assertions, entities = entities, topics = topics,
@@ -195,7 +200,26 @@ fun AtlasApp() {
                         editId = it
                         current = Screen.ASSERTION_DETAIL.name
                     },
-                    onBackToAtlas = { current = Screen.ATLAS.name }
+                    onBackToAtlas = { current = Screen.ATLAS.name },
+                    onBands = { current = Screen.BANDS.name }
+                )
+                Screen.BANDS -> CategoryBandsScreen(
+                    topics = topics, assertions = assertions, sources = sources, entities = entities,
+                    topicLinks = tLinks, entityLinks = eLinks, relations = relations,
+                    level = level, onLevel = { next, key ->
+                        level = next
+                        selectedTimeKey = key
+                    },
+                    anchorYear = anchorYear, onAnchorYear = { anchorYear = it },
+                    anchorMonth = anchorMonth, onAnchorMonth = { anchorMonth = it },
+                    placeIds = placeIds, onPlaceIds = { selectedPlaces = it.joinToString(";") },
+                    onSaveTopic = { old, item -> execute { repo.saveTopic(old, item) } },
+                    onManageTopics = { current = Screen.TOPICS.name },
+                    onOpenAssertion = {
+                        detailReturn = Screen.BANDS.name
+                        editId = it
+                        current = Screen.ASSERTION_DETAIL.name
+                    }
                 )
                 Screen.SOURCES -> SourcesScreen(
                     sources = sources, assertions = assertions,
