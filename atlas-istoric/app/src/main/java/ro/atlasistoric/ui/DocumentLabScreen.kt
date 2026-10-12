@@ -335,9 +335,32 @@ fun DocumentLabScreen(
         }
 
         HorizontalDivider()
-        Text("ADNOTĂRI · ${ownAnnotations.size}", style = MaterialTheme.typography.titleMedium)
-        if (ownAnnotations.isEmpty()) Text("Selectează un fragment și adaugă prima adnotare.")
-        ownAnnotations.forEach { a ->
+        SourceCoveragePanel(
+            page = selected,
+            annotations = ownAnnotations,
+            busy = busy || editor.text != selected.verifiedText,
+            onSelectText = { window ->
+                editor = editor.copy(selection = TextRange(window.start, window.end))
+            },
+            onVerifySegment = { window ->
+                busy = true
+                scope.launch {
+                    try {
+                        repository.annotate(
+                            selected.id, window.start, window.end,
+                            "SEGMENT_VERIFICAT", "Fragment confruntat manual cu pagina originală")
+                        onNotice("Fragment verificat; registrul de acoperire a fost actualizat")
+                    } catch (e: Exception) {
+                        err = e.localizedMessage ?: "Nu s-a putut confirma segmentul"
+                    } finally { busy = false }
+                }
+            }
+        )
+        HorizontalDivider()
+        val scholarlyNotes = ownAnnotations.filter { it.category != "SEGMENT_VERIFICAT" }
+        Text("ADNOTĂRI · ${scholarlyNotes.size}", style = MaterialTheme.typography.titleMedium)
+        if (scholarlyNotes.isEmpty()) Text("Selectează un fragment și adaugă prima adnotare.")
+        scholarlyNotes.forEach { a ->
             val resolved = resolveTextAnchor(selected.verifiedText, a)
             ElevatedCard {
                 Column(Modifier.fillMaxWidth().padding(12.dp),
