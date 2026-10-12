@@ -99,6 +99,19 @@ class AtlasRepository(private val db: AtlasDatabase) {
         require(dao.exactDuplicateCount(item.sourceId, item.page, item.passage, item.id) == 0) {
             "Acest pasaj există deja pentru aceeași sursă și pagină"
         }
+        // A citation linked to a photographed original must NEVER silently move
+        // to another source or page when the claim is edited later.
+        if (updating) {
+            dao.annotationLinksForAssertion(item.id).forEach { link ->
+                val a = dao.pageAnnotationById(link.annotationId)
+                    ?: error("Adnotarea de proveniență lipsește")
+                val page = dao.documentPageById(a.pageId)
+                    ?: error("Originalul fotografic de proveniență lipsește")
+                require(page.sourceId == item.sourceId && page.pageLabel == item.page) {
+                    "Nu poți muta o afirmație citată pe altă pagină/sursă fără verificarea legăturii originale"
+                }
+            }
+        }
         if (updating) {
             val previous = dao.assertionById(item.id) ?: error("Afirmația originală nu a fost găsită")
             dao.insertRevision(RevisionEntry(recordType = "ASSERTION", recordId = item.id,
