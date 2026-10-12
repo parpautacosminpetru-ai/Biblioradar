@@ -28,6 +28,7 @@ data class StudyCard(
     val question: String,
     val answerMode: String = "PASAJ", // PASAJ, DATA, LOC; answer always derived from source-linked claim
     val note: String = "",
+    val suspended: Boolean = false,
     val dueAt: Long = 0L,
     val intervalDays: Int = 0,
     val easePermille: Int = 2300,
