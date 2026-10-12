@@ -37,6 +37,12 @@ class AtlasRepository(private val db: AtlasDatabase) {
     }
     suspend fun saveTopic(old: HistoricalTopic?, item: HistoricalTopic) = db.withTransaction {
         val topics = dao.allTopics()
+        require(item.name.isNotBlank()) { "Numele categoriei nu poate fi gol" }
+        val normalized = ro.atlasistoric.util.TimeMath.normalize(item.name)
+        require(topics.none { previous ->
+            previous.id != item.id && previous.parentId == item.parentId &&
+                ro.atlasistoric.util.TimeMath.normalize(previous.name) == normalized
+        }) { "Există deja această categorie în același indice sau părinte" }
         require(item.parentId == null || topics.any { it.id == item.parentId }) { "Tema părinte nu există" }
         require(item.parentId !in descendantsOfTopic(item.id, topics)) { "Nesting tematic ciclic" }
         if (old == null) dao.insertTopic(item)
