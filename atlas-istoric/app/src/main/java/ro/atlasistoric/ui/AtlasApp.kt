@@ -112,6 +112,8 @@ fun AtlasApp() {
                         IconButton(onClick = { current = when (currentScreen) {
                             Screen.RELATIONS -> Screen.ENTITIES.name
                             Screen.ASSERTION_DETAIL -> detailReturn
+                            Screen.ASSERTION_EDITOR -> if (pendingAnnotationId != null) Screen.LAB.name else Screen.ATLAS.name
+                            Screen.CAMERA -> Screen.LAB.name
                             else -> Screen.ATLAS.name
                         } }) { Icon(Icons.Default.ArrowBack, contentDescription = "Înapoi") }
                     }
@@ -175,6 +177,8 @@ fun AtlasApp() {
                 ExtendedFloatingActionButton(
                     onClick = {
                         editId = null; seedText = ""
+                        pendingAnnotationId = null
+                        preferredPageLabel = null
                         preferredEntityId = null; preferredTopicId = null
                         current = Screen.ASSERTION_EDITOR.name
                     },
@@ -300,6 +304,7 @@ fun AtlasApp() {
                     onInitialPageConsumed = { originalPageToOpen = null },
                     onNewSource = { quickSource = true },
                     onExtract = { page, annotation ->
+                        originalPageToOpen = page.id
                         pendingAnnotationId = annotation.id
                         preferredSourceId = page.sourceId
                         preferredPageLabel = page.pageLabel
@@ -335,6 +340,8 @@ fun AtlasApp() {
                     onSave = { old, r -> execute { repo.saveRelation(old, r) } }
                 )
                 Screen.CAMERA -> CameraOcrScreen(onUseText = { recognized ->
+                    pendingAnnotationId = null
+                    preferredPageLabel = null
                     seedText = recognized
                     preferredEntityId = null
                     preferredTopicId = null
