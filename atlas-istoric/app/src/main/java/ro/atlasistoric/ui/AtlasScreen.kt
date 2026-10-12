@@ -77,7 +77,8 @@ fun AtlasScreen(
     search: String, onSearch: (String) -> Unit,
     onOpen: (String) -> Unit,
     onOverlaps: () -> Unit,
-    onBands: () -> Unit
+    onBands: () -> Unit,
+    onStudy: () -> Unit
 ) {
     // The temporal ruler exists independently of stored documents: zoom never invents evidence.
     val eras = remember(assertions) { assertions.map { it.periodLabel } }
@@ -165,6 +166,9 @@ fun AtlasScreen(
             }
         }
         item {
+            Button(onClick = onStudy, modifier = Modifier.fillMaxWidth()) {
+                Text("Învățare · exerciții din sursele mele →")
+            }
             FilledTonalButton(onClick = onBands, modifier = Modifier.fillMaxWidth()) {
                 Text("Benzi paralele pe categorii →")
             }
