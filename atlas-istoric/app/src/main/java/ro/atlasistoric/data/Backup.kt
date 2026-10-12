@@ -9,7 +9,7 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class AtlasSnapshot(
     val format: String = "atlas-istoric-json",
-    val schemaVersion: Int = 3,
+    val schemaVersion: Int = 4,
     val entities: List<HistoricalEntity>,
     val sources: List<HistoricalSource>,
     val assertions: List<HistoricalAssertion>,
@@ -21,15 +21,18 @@ data class AtlasSnapshot(
     val drafts: List<ResearchDraft> = emptyList(),
     val draftClaims: List<DraftClaimLink> = emptyList(),
     val studyCards: List<StudyCard> = emptyList(),
-    val studyReviews: List<StudyReview> = emptyList()
+    val studyReviews: List<StudyReview> = emptyList(),
+    val documentPages: List<DocumentPage> = emptyList(),
+    val pageAnnotations: List<PageAnnotation> = emptyList(),
+    val annotationClaims: List<AnnotationClaimLink> = emptyList()
 )
 
 class BackupService(private val db: AtlasDatabase) {
     private val dao = db.dao()
     private val json = Json { prettyPrint = true; encodeDefaults = true }
 
-    suspend fun exportJson(): String = db.withTransaction {
-        json.encodeToString(AtlasSnapshot(
+    suspend fun exportSnapshot(): AtlasSnapshot = db.withTransaction {
+        AtlasSnapshot(
             entities = dao.allEntities(),
             sources = dao.allSources(),
             assertions = dao.allAssertions(),
@@ -41,17 +44,47 @@ class BackupService(private val db: AtlasDatabase) {
             drafts = dao.allDrafts(),
             draftClaims = dao.allDraftClaimLinks(),
             studyCards = dao.allStudyCards(),
-            studyReviews = dao.allStudyReviews()
-        ))
+            studyReviews = dao.allStudyReviews(),
+            documentPages = dao.allDocumentPages(),
+            pageAnnotations = dao.allPageAnnotations(),
+            annotationClaims = dao.allAnnotationClaimLinks()
+        )
+    }
+
+    fun encodeSnapshot(data: AtlasSnapshot): String = json.encodeToString(data)
+    fun decodeSnapshot(raw: String): AtlasSnapshot = json.decodeFromString(raw)
+
+    /** Plain JSON deliberately cannot pretend to contain image binaries. */
+    suspend fun exportJson(): String {
+        require(dao.documentPageCount() == 0) {
+            "Există fotografii. Pentru arhiva completă folosește Exportă ZIP."
+        }
+        return encodeSnapshot(exportSnapshot())
     }
 
     /** Explicit *replacement*, never implicit merge. Validates referential integrity before clearing.
      *  A failed transaction rolls back every delete. */
     suspend fun importReplaceJson(raw: String) {
-        val data = json.decodeFromString<AtlasSnapshot>(raw)
-        require(data.format == "atlas-istoric-json" && data.schemaVersion in 1..3) { "Format sau versiune necunoscută" }
+        val data = decodeSnapshot(raw)
+        require(data.documentPages.isEmpty() && dao.documentPageCount() == 0) {
+            "Nu poți înlocui fotografii originale cu o arhivă JSON. Folosește ZIP complet."
+        }
+        importReplaceSnapshot(data, withMedia = false)
+    }
+
+    /** Used only by a ZIP archive after its image bytes and SHA-256 have been verified. */
+    suspend fun importReplaceSnapshot(data: AtlasSnapshot, withMedia: Boolean) {
+        require(data.format == "atlas-istoric-json" && data.schemaVersion in 1..4) {
+            "Format sau versiune necunoscută"
+        }
+        require(withMedia || data.documentPages.isEmpty()) {
+            "Fotografiile nu sunt incluse în importul JSON"
+        }
         validate(data)
         db.withTransaction {
+            dao.clearAnnotationClaimLinks()
+            dao.clearPageAnnotations()
+            dao.clearDocumentPages()
             dao.clearAllStudyReviews()
             dao.clearAllStudyCards()
             dao.clearRevisions()
@@ -80,6 +113,9 @@ class BackupService(private val db: AtlasDatabase) {
             data.assertionTopics.forEach { dao.addAssertionTopicLink(it) }
             data.studyCards.forEach { dao.insertStudyCard(it) }
             data.studyReviews.forEach { dao.insertStudyReview(it) }
+            data.documentPages.forEach { dao.insertDocumentPage(it) }
+            data.pageAnnotations.forEach { dao.insertPageAnnotation(it) }
+            data.annotationClaims.forEach { dao.insertAnnotationClaimLink(it) }
             data.relations.forEach { dao.insertRelation(it) }
             data.drafts.forEach { dao.insertDraft(it) }
             data.draftClaims.forEach { dao.insertDraftClaimLink(it) }
@@ -87,7 +123,7 @@ class BackupService(private val db: AtlasDatabase) {
         }
     }
 
-    private fun validate(data: AtlasSnapshot) {
+    fun validate(data: AtlasSnapshot) {
         val eIds = data.entities.map { it.id }.toSet()
         val sIds = data.sources.map { it.id }.toSet()
         val aIds = data.assertions.map { it.id }.toSet()
@@ -104,6 +140,27 @@ class BackupService(private val db: AtlasDatabase) {
         require(data.studyReviews.all { it.cardId in cIds && it.grade in 0..3 }) {
             "Recapitulare fără fișă sau evaluare invalidă"
         }
+        val pages = data.documentPages.associateBy { it.id }
+        val annotations = data.pageAnnotations.associateBy { it.id }
+        require(pages.size == data.documentPages.size && annotations.size == data.pageAnnotations.size) {
+            "Pagini sau adnotări cu ID duplicat"
+        }
+        require(data.documentPages.all { p ->
+            p.sourceId in sIds && p.sha256.matches(Regex("[0-9a-f]{64}")) &&
+                p.storagePath.startsWith("atlas_pages/") &&
+                !p.storagePath.contains("..") &&
+                !p.storagePath.contains('\\') &&
+                p.status in setOf("CAPTURED", "TRANSCRIBED", "VERIFIED", "ANNOTATED")
+        }) { "Proveniență sau fișier original invalid" }
+        require(data.pageAnnotations.all { a ->
+            a.pageId in pages && a.startOffset >= 0 && a.endOffset > a.startOffset &&
+                a.exactQuote.isNotEmpty()
+        }) { "Ancoră de adnotare invalidă" }
+        require(data.annotationClaims.all { link ->
+            link.annotationId in annotations && link.assertionId in aIds &&
+                data.assertions.first { it.id == link.assertionId }.sourceId ==
+                pages.getValue(annotations.getValue(link.annotationId).pageId).sourceId
+        }) { "Legături documentare între surse diferite" }
         require(data.drafts.size == dIds.size) { "ID-uri duplicate în atelier" }
         require(data.draftClaims.all { it.draftId in dIds && it.assertionId in aIds }) { "Referință invalidă în atelier" }
         require(listOf(data.entities.size == eIds.size, data.sources.size == sIds.size,
