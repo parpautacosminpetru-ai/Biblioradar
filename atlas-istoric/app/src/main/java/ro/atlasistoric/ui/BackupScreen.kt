@@ -26,6 +26,7 @@ fun BackupScreen(database: AtlasDatabase, onNotice: (String) -> Unit) {
     val backup = remember(database) { BackupService(database) }
     val archive = remember(database, ctx) { AtlasArchiveZip(ctx, database) }
     val protectedArchive = remember(database, ctx) { ProtectedArchive(ctx, database) }
+    var busy by remember { mutableStateOf(false) }
     var archivePassword by remember { mutableStateOf("") }
     var pendingProtectedImport by remember { mutableStateOf<android.net.Uri?>(null) }
     var revealPassword by remember { mutableStateOf(false) }
@@ -58,7 +59,6 @@ fun BackupScreen(database: AtlasDatabase, onNotice: (String) -> Unit) {
         listOf(db, java.io.File(db.path + "-wal"), java.io.File(db.path + "-shm")).sumOf { it.length() }
     }
     val availableDisk = remember(ctx) { ctx.filesDir.usableSpace }
-    var busy by remember { mutableStateOf(false) }
     var pendingImport by remember { mutableStateOf<String?>(null) }
     var pendingZip by remember { mutableStateOf<android.net.Uri?>(null) }
     val zipExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
