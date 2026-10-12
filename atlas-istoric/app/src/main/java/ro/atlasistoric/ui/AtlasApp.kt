@@ -16,7 +16,7 @@ import kotlinx.coroutines.withContext
 import ro.atlasistoric.data.*
 import ro.atlasistoric.ocr.CameraOcrScreen
 
-private enum class Screen { ATLAS, OVERLAPS, BANDS, SOURCES, ENTITIES, TOPICS, RELATIONS, CAMERA, ASSERTION_EDITOR, ASSERTION_DETAIL, BACKUP, DRAFTS }
+private enum class Screen { ATLAS, OVERLAPS, BANDS, STUDY, SOURCES, ENTITIES, TOPICS, RELATIONS, CAMERA, ASSERTION_EDITOR, ASSERTION_DETAIL, BACKUP, DRAFTS }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +35,8 @@ fun AtlasApp() {
     val revisions by dao.revisions().collectAsState(initial = emptyList())
     val drafts by dao.drafts().collectAsState(initial = emptyList())
     val draftLinks by dao.draftClaimLinks().collectAsState(initial = emptyList())
+    val studyCards by dao.studyCards().collectAsState(initial = emptyList())
+    val studyReviews by dao.studyReviews().collectAsState(initial = emptyList())
 
     var current by rememberSaveable { mutableStateOf(Screen.ATLAS.name) }
     var editId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -52,6 +54,7 @@ fun AtlasApp() {
     var perspective by rememberSaveable { mutableStateOf("TIMP") }
     var search by rememberSaveable { mutableStateOf("") }
     var detailReturn by rememberSaveable { mutableStateOf(Screen.ATLAS.name) }
+    var newStudyClaimId by rememberSaveable { mutableStateOf<String?>(null) }
     var quickSource by remember { mutableStateOf(false) }
     var quickEntity by remember { mutableStateOf(false) }
     var quickTopic by remember { mutableStateOf(false) }
@@ -85,6 +88,7 @@ fun AtlasApp() {
                     Screen.ATLAS -> "ATLAS ISTORIC"
                     Screen.OVERLAPS -> "Suprapuneri vizuale"
                     Screen.BANDS -> "Indici și benzi paralele"
+                    Screen.STUDY -> "Învățare din surse"
                     Screen.SOURCES -> "Biblioteca de surse"
                     Screen.ENTITIES -> "Identități istorice"
                     Screen.TOPICS -> "Arbore tematic"
@@ -96,7 +100,7 @@ fun AtlasApp() {
                     Screen.DRAFTS -> "Atelier de sinteză"
                 }, style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
-                    if (navigatingEditor || currentScreen == Screen.BACKUP || currentScreen == Screen.RELATIONS || currentScreen == Screen.DRAFTS || currentScreen == Screen.OVERLAPS || currentScreen == Screen.BANDS) {
+                    if (navigatingEditor || currentScreen == Screen.BACKUP || currentScreen == Screen.RELATIONS || currentScreen == Screen.DRAFTS || currentScreen == Screen.OVERLAPS || currentScreen == Screen.BANDS || currentScreen == Screen.STUDY) {
                         IconButton(onClick = { current = when (currentScreen) {
                             Screen.RELATIONS -> Screen.ENTITIES.name
                             Screen.ASSERTION_DETAIL -> detailReturn
@@ -106,6 +110,9 @@ fun AtlasApp() {
                 },
                 actions = {
                     if (currentScreen == Screen.ATLAS) {
+                        IconButton(onClick = { current = Screen.STUDY.name }) {
+                            Icon(Icons.Default.School, contentDescription = "Învățare și recapitulare")
+                        }
                         IconButton(onClick = { current = Screen.BANDS.name }) {
                             Icon(Icons.Default.ViewAgenda, contentDescription = "Indici și benzi paralele")
                         }
@@ -182,7 +189,8 @@ fun AtlasApp() {
                         current = Screen.ASSERTION_DETAIL.name
                     },
                     onOverlaps = { current = Screen.OVERLAPS.name },
-                    onBands = { current = Screen.BANDS.name }
+                    onBands = { current = Screen.BANDS.name },
+                    onStudy = { current = Screen.STUDY.name }
                 )
                 Screen.OVERLAPS -> OverlapsScreen(
                     assertions = assertions, entities = entities, topics = topics,
@@ -219,6 +227,51 @@ fun AtlasApp() {
                         detailReturn = Screen.BANDS.name
                         editId = it
                         current = Screen.ASSERTION_DETAIL.name
+                    }
+                )
+                Screen.STUDY -> LearningScreen(
+                    cards = studyCards, reviews = studyReviews,
+                    assertions = assertions, sources = sources,
+                    entities = entities, topics = topics,
+                    entityLinks = eLinks, topicLinks = tLinks, relations = relations,
+                    selectedTimeKey = selectedTimeKey,
+                    selectedPlaceIds = placeIds, selectedTopicIds = topicIds,
+                    topicMatchAll = topicMatchAll,
+                    openClaimId = newStudyClaimId,
+                    onConsumedOpenClaim = { newStudyClaimId = null },
+                    saveCard = { old, item ->
+                        withContext(Dispatchers.IO) { repo.saveStudyCard(old, item) }
+                    },
+                    rateCard = { cardId, grade ->
+                        withContext(Dispatchers.IO) { repo.rateStudyCard(cardId, grade) }
+                    },
+                    onOpenClaim = {
+                        detailReturn = Screen.STUDY.name
+                        editId = it
+                        current = Screen.ASSERTION_DETAIL.name
+                    },
+                    onExploreClaim = { claimId ->
+                        val claim = assertions.find { it.id == claimId }
+                        if (claim != null) {
+                            val first = claim.yearStart
+                            if (first != null) {
+                                anchorYear = first
+                                if (claim.yearEnd == first) {
+                                    level = "AN"
+                                    selectedTimeKey = "Y:$first"
+                                } else {
+                                    level = "SECOL"
+                                    selectedTimeKey = null
+                                }
+                            } else selectedTimeKey = null
+                            selectedPlaces = eLinks.filter {
+                                it.assertionId == claimId && it.role == "LOC"
+                            }.joinToString(";") { it.entityId }
+                            selectedTopics = tLinks.filter {
+                                it.assertionId == claimId
+                            }.joinToString(";") { it.topicId }
+                        }
+                        current = Screen.ATLAS.name
                     }
                 )
                 Screen.SOURCES -> SourcesScreen(
@@ -285,7 +338,11 @@ fun AtlasApp() {
                         item = detailAssertion, sources = sources, entities = entities, topics = topics,
                         entityLinks = eLinks, topicLinks = tLinks,
                         revisions = revisions.filter { it.recordType == "ASSERTION" && it.recordId == detailAssertion.id },
-                        onEdit = { current = Screen.ASSERTION_EDITOR.name }
+                        onEdit = { current = Screen.ASSERTION_EDITOR.name },
+                        onStudy = {
+                            newStudyClaimId = detailAssertion.id
+                            current = Screen.STUDY.name
+                        }
                     )
                 }
                 Screen.DRAFTS -> DraftsScreen(
