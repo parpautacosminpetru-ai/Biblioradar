@@ -16,7 +16,7 @@ import kotlinx.coroutines.withContext
 import ro.atlasistoric.data.*
 import ro.atlasistoric.ocr.CameraOcrScreen
 
-private enum class Screen { ATLAS, SOURCES, ENTITIES, TOPICS, RELATIONS, CAMERA, ASSERTION_EDITOR, ASSERTION_DETAIL, BACKUP, DRAFTS }
+private enum class Screen { ATLAS, OVERLAPS, SOURCES, ENTITIES, TOPICS, RELATIONS, CAMERA, ASSERTION_EDITOR, ASSERTION_DETAIL, BACKUP, DRAFTS }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +51,7 @@ fun AtlasApp() {
     var topicMatchAll by rememberSaveable { mutableStateOf(false) }
     var perspective by rememberSaveable { mutableStateOf("TIMP") }
     var search by rememberSaveable { mutableStateOf("") }
+    var detailReturn by rememberSaveable { mutableStateOf(Screen.ATLAS.name) }
     var quickSource by remember { mutableStateOf(false) }
     var quickEntity by remember { mutableStateOf(false) }
     var quickTopic by remember { mutableStateOf(false) }
@@ -82,6 +83,7 @@ fun AtlasApp() {
             CenterAlignedTopAppBar(
                 title = { Text(when (currentScreen) {
                     Screen.ATLAS -> "ATLAS ISTORIC"
+                    Screen.OVERLAPS -> "Suprapuneri vizuale"
                     Screen.SOURCES -> "Biblioteca de surse"
                     Screen.ENTITIES -> "Identități istorice"
                     Screen.TOPICS -> "Arbore tematic"
@@ -93,15 +95,19 @@ fun AtlasApp() {
                     Screen.DRAFTS -> "Atelier de sinteză"
                 }, style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
-                    if (navigatingEditor || currentScreen == Screen.BACKUP || currentScreen == Screen.RELATIONS || currentScreen == Screen.DRAFTS) {
+                    if (navigatingEditor || currentScreen == Screen.BACKUP || currentScreen == Screen.RELATIONS || currentScreen == Screen.DRAFTS || currentScreen == Screen.OVERLAPS) {
                         IconButton(onClick = { current = when (currentScreen) {
                             Screen.RELATIONS -> Screen.ENTITIES.name
+                            Screen.ASSERTION_DETAIL -> detailReturn
                             else -> Screen.ATLAS.name
                         } }) { Icon(Icons.Default.ArrowBack, contentDescription = "Înapoi") }
                     }
                 },
                 actions = {
                     if (currentScreen == Screen.ATLAS) {
+                        IconButton(onClick = { current = Screen.OVERLAPS.name }) {
+                            Icon(Icons.Default.GridView, contentDescription = "Vezi suprapunerile vizuale")
+                        }
                         IconButton(onClick = { current = Screen.DRAFTS.name }) {
                             Icon(Icons.Default.EditNote, contentDescription = "Atelierul de sinteze")
                         }
@@ -118,7 +124,7 @@ fun AtlasApp() {
             )
         },
         bottomBar = {
-            if (!navigatingEditor && currentScreen != Screen.BACKUP && currentScreen != Screen.RELATIONS && currentScreen != Screen.DRAFTS) {
+            if (!navigatingEditor && currentScreen != Screen.BACKUP && currentScreen != Screen.RELATIONS && currentScreen != Screen.DRAFTS && currentScreen != Screen.OVERLAPS) {
                 NavigationBar {
                     listOf(
                         Triple(Screen.ATLAS, Icons.Default.Timeline, "Atlas"),
@@ -166,7 +172,30 @@ fun AtlasApp() {
                     topicMatchAll = topicMatchAll, onTopicMatchAll = { topicMatchAll = it },
                     perspective = perspective, onPerspective = { perspective = it },
                     search = search, onSearch = { search = it },
-                    onOpen = { editId = it; current = Screen.ASSERTION_DETAIL.name }
+                    onOpen = {
+                        detailReturn = Screen.ATLAS.name
+                        editId = it
+                        current = Screen.ASSERTION_DETAIL.name
+                    },
+                    onOverlaps = { current = Screen.OVERLAPS.name }
+                )
+                Screen.OVERLAPS -> OverlapsScreen(
+                    assertions = assertions, entities = entities, topics = topics,
+                    sources = sources, entityLinks = eLinks, topicLinks = tLinks,
+                    relations = relations, level = level,
+                    onLevel = { next, key -> level = next; selectedTimeKey = key },
+                    anchorYear = anchorYear, onAnchorYear = { anchorYear = it },
+                    anchorMonth = anchorMonth, onAnchorMonth = { anchorMonth = it },
+                    timeKey = selectedTimeKey, onTimeKey = { selectedTimeKey = it },
+                    placeIds = placeIds, onPlaceIds = { selectedPlaces = it.joinToString(";") },
+                    topicIds = topicIds, onTopicIds = { selectedTopics = it.joinToString(";") },
+                    topicMatchAll = topicMatchAll, onTopicMatchAll = { topicMatchAll = it },
+                    onOpen = {
+                        detailReturn = Screen.OVERLAPS.name
+                        editId = it
+                        current = Screen.ASSERTION_DETAIL.name
+                    },
+                    onBackToAtlas = { current = Screen.ATLAS.name }
                 )
                 Screen.SOURCES -> SourcesScreen(
                     sources = sources, assertions = assertions,
