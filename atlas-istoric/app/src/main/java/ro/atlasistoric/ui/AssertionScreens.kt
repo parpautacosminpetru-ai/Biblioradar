@@ -239,7 +239,8 @@ fun AssertionDetail(
     item: HistoricalAssertion, sources: List<HistoricalSource>, entities: List<HistoricalEntity>,
     topics: List<HistoricalTopic>, entityLinks: List<AssertionEntityLink>, topicLinks: List<AssertionTopicLink>,
     revisions: List<RevisionEntry>,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    onStudy: () -> Unit
 ) {
     val src = sources.find { it.id == item.sourceId }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
@@ -280,6 +281,9 @@ fun AssertionDetail(
             if (expandedRevision == revision.id) {
                 Text(revision.previousJson, style = MaterialTheme.typography.bodySmall)
             }
+        }
+        Button(onClick = onStudy, modifier = Modifier.fillMaxWidth()) {
+            Text("Creează întrebare de învățare din această sursă →")
         }
         Button(onClick = onEdit) { Text("Editează înregistrarea") }
     }
