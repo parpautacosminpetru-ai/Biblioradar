@@ -53,6 +53,8 @@ fun DocumentLabScreen(
     pages: List<DocumentPage>,
     annotations: List<PageAnnotation>,
     links: List<AnnotationClaimLink>,
+    initialPageId: String?,
+    onInitialPageConsumed: () -> Unit,
     onNewSource: () -> Unit,
     onExtract: (DocumentPage, PageAnnotation) -> Unit,
     onNotice: (String) -> Unit
@@ -65,6 +67,13 @@ fun DocumentLabScreen(
     }
     var pageLabel by remember { mutableStateOf("") }
     var selectedPageId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(initialPageId, pages) {
+        if (initialPageId != null && pages.any { it.id == initialPageId }) {
+            selectedPageId = initialPageId
+            selectedSourceId = pages.first { it.id == initialPageId }.sourceId
+            onInitialPageConsumed()
+        }
+    }
     val selected = pages.firstOrNull { it.id == selectedPageId }
     var busy by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf<String?>(null) }
