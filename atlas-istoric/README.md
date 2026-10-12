@@ -1,6 +1,16 @@
 # ATLAS ISTORIC — Android offline
 
-**Versiunea codului: 1.2.0 (candidat cu indici incrementali).** Acest pachet conține proiectul complet și workflow-ul de compilare pentru un APK Android. **Nu conține APK compilat și NU este încă certificat ca testat pe un telefon real.** Pentru obținerea installerului este necesar build-ul Android (GitHub Actions sau Android Studio).
+**Versiunea codului: 1.5.0-rc1 (candidat pentru validare profesională).** Acest pachet conține proiectul complet și workflow-ul de compilare pentru un APK Android. **Nu conține APK compilat și NU este încă certificat ca testat pe un telefon real.** Pentru obținerea installerului este necesar build-ul Android (GitHub Actions sau Android Studio).
+
+## Nou în v1.5-rc1 — siguranță și control documentar
+
+- **Registru de acoperire a sursei:** textul OCR verificat este împărțit în segmente consecutive fără pierderea vreunui caracter; cercetătorul confirmă manual segmentele parcurse.
+- **Arhivă completă protejată:** export/restore `.atlas` cu AES-256-GCM și parolă personală; fotografia, textul, adnotările și afirmațiile rămân împreună.
+- **Restaurare înainte de ștergere:** decriptarea cu succes și verificările de hash preced înlocuirea datelor.
+- **Cheie permanentă de instalare:** workflow separat pentru APK release, bazat pe cheie deținută de proprietar și secrete GitHub, fără parole în cod.
+- **Teste:** verificări de acoperire integrală, criptare, parolă incorectă, arhivă alterată și migrații fără pierdere de date.
+- **Limite:** nu înseamnă încă OCR semantic exhaustiv; nu există un editor complet de hărți conceptuale, nici un atelier didactic universitar complet. Sunt obligatorii testele pe telefon și semnarea finală.
+- **Ghid de lansare:** `docs/LANSARE_PROFESIONALA.md`. Nu dezinstala o versiune veche până nu ai testat restaurarea unei copii de siguranță.
 
 ## Nou în v1.2 — indici incrementali și benzi paralele
 

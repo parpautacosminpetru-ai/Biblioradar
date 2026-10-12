@@ -42,13 +42,26 @@ runner este șters după compilare. Folosește cont GitHub cu autentificare în 
 
 ## 3. Generează manual versiunea semnată
 
-Mergi la GitHub → **Actions** → **Atlas Istoric - APK semnat permanent** → Run workflow.
-Selectează **atlas-istoric-professional-release** și introdu `SEMNEZ` în caseta de
-confirmare. Fluxul verifică migrațiile, execută testele unitare, produce APK-ul release,
-verifică semnătura prin `apksigner` și publică artefactul cu SHA-256 și certificatul
-public al semnăturii.
+Workflow-ul de semnare se află pe ramura izolată
+`atlas-istoric-professional-release`, fără să modifice ramura principală Biblioradar.
+GitHub poate afișa butonul *Run workflow* numai pentru workflow-uri prezente și pe
+ramura implicită. Pentru a evita modificarea proiectului Biblioradar, poți declanșa
+**în siguranță semnarea dintr-un commit controlat**, astfel:
 
-Nu lansa un update către utilizatori înainte de verificarea manuală a datelor.
+1. După configurarea celor patru GitHub Secrets, adaugă în
+   **Settings → Secrets and variables → Actions → Variables** variabila de repository
+   `ATLAS_ENABLE_RELEASE_SIGNING` cu valoarea `true`.
+2. Deschide pe ramura profesională documentul
+   `atlas-istoric/docs/RELEASE_REQUEST.md` și schimbă numărul cererii.
+3. Salvează modificarea cu un mesaj de commit care conține exact
+   `[sign-release]`. Aceste trei condiții activează **doar** workflow-ul semnat.
+4. În **Actions → Atlas Istoric - APK semnat permanent**, verifică rularea.
+   Un build reușit publică `app-release.apk`, SHA-256 și certificatul public.
+5. După descărcare, setează variabila `ATLAS_ENABLE_RELEASE_SIGNING` înapoi la
+   `false`. Păstrează cheia, parola și certificatul pentru viitoarele versiuni.
+
+Este blocată orice încercare de semnare dacă secretele lipsesc. Nu urca cheia de semnare
+sau parolele în repository, într-un issue sau în chat.
 
 ## 4. Important pentru versiunile debug anterioare
 
@@ -79,7 +92,9 @@ Nu șterge niciodată singura copie a cercetării.
 - [ ] Funcțiile de analiză, graf conceptual, ediție critică și materiale didactice sunt
       implementate și testate înaintea declarării ediției academice complete.
 
-**Limite actuale:** ZIP-ul integral nu este criptat; OCR-ul nu garantează recunoaștere
+**Limite actuale:** este disponibilă o arhivă `.atlas` criptată cu parolă,
+dar și un ZIP tradițional necriptat (pentru compatibilitate); decriptarea folosește
+temporar fișiere în cache-ul privat al Android. OCR-ul nu garantează recunoaștere
 perfectă și nu extrage exhaustiv toate afirmațiile; editorul de hărți conceptuale și
 atelierul didactic universitar complet rămân de construit. Registrul de acoperire
 atestă numai examinarea segmentelor de text, NU exhaustivitatea înțelegerii istorice.

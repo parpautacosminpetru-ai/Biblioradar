@@ -52,3 +52,21 @@
 - [ ] Testează un APK **semnat cu cheie release stabilă**, instalat peste versiunea anterioară, păstrând toate sursele și fotografiile.
 
 Aceste teste manuale nu sunt echivalente cu testele Gradle/SQLite și nu trebuie declarate trecute fără dispozitive Android reale.
+
+
+## Scenarii suplimentare v1.5-rc1 — acoperire și criptare
+
+- [ ] Confirmă că concatenarea tuturor segmentelor OCR reproduce **identic**
+      transcrierea verificată, inclusiv spații, diacritice și semne de punctuație.
+- [ ] Parcurge manual toate segmentele unei pagini, marcând explicit fiecare segment.
+      Procentul de acoperire trebuie să reflecte doar verificările confirmate.
+- [ ] Modifică textul după adnotare: pozițiile ambigue nu trebuie marcate ca verificate.
+- [ ] Exportă arhiva `.atlas` cu o parolă puternică de minimum 12 caractere și
+      compară restaurarea într-o instalare nouă, pe un telefon de probă.
+- [ ] Încearcă restaurarea unei arhive criptate cu parolă greșită și a uneia
+      deteriorate; nicio înregistrare actuală nu trebuie modificată.
+- [ ] Verifică faptul că nu sunt salvate parole în fișierele de configurare ale
+      aplicației sau în jurnalul GitHub Actions.
+- [ ] Repetă un upgrade cu un APK release semnat prin cheia permanentă a proprietarului.
+- [ ] Testează consumul de memorie și timpul de procesare pentru arhive de cel puțin
+      1 GB, pe un dispozitiv Android cu RAM limitat, înainte de folosirea permanentă.
