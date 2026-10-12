@@ -11,9 +11,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         HistoricalEntity::class, HistoricalSource::class, HistoricalAssertion::class,
         HistoricalTopic::class, AssertionEntityLink::class, AssertionTopicLink::class,
-        EntityRelation::class, RevisionEntry::class, ResearchDraft::class, DraftClaimLink::class
+        EntityRelation::class, RevisionEntry::class, ResearchDraft::class, DraftClaimLink::class,
+        StudyCard::class, StudyReview::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AtlasDatabase : RoomDatabase() {
@@ -30,13 +31,56 @@ abstract class AtlasDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_draft_claim_links_assertionId ON draft_claim_links (`assertionId`)")
             }
         }
+        // Non-destructive learning extension: research records and existing ID links are preserved.
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS study_cards (
+                      id TEXT NOT NULL,
+                      assertionId TEXT NOT NULL,
+                      question TEXT NOT NULL,
+                      answerMode TEXT NOT NULL,
+                      note TEXT NOT NULL,
+                      dueAt INTEGER NOT NULL,
+                      intervalDays INTEGER NOT NULL,
+                      easePermille INTEGER NOT NULL,
+                      repetitions INTEGER NOT NULL,
+                      lapses INTEGER NOT NULL,
+                      lastReviewedAt INTEGER,
+                      createdAt INTEGER NOT NULL,
+                      updatedAt INTEGER NOT NULL,
+                      PRIMARY KEY(id),
+                      FOREIGN KEY(assertionId) REFERENCES historical_assertions(id)
+                        ON UPDATE NO ACTION ON DELETE RESTRICT
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_study_cards_assertionId ON study_cards (assertionId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_study_cards_dueAt ON study_cards (dueAt)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS study_reviews (
+                      id TEXT NOT NULL,
+                      cardId TEXT NOT NULL,
+                      grade INTEGER NOT NULL,
+                      reviewedAt INTEGER NOT NULL,
+                      previousIntervalDays INTEGER NOT NULL,
+                      nextIntervalDays INTEGER NOT NULL,
+                      nextDueAt INTEGER NOT NULL,
+                      PRIMARY KEY(id),
+                      FOREIGN KEY(cardId) REFERENCES study_cards(id)
+                        ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_study_reviews_cardId ON study_reviews (cardId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_study_reviews_reviewedAt ON study_reviews (reviewedAt)")
+            }
+        }
         @Volatile private var instance: AtlasDatabase? = null
         fun get(context: Context): AtlasDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(
                 context.applicationContext,
                 AtlasDatabase::class.java,
                 "atlas_istoric.db"
-            ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
         }
     }
 }
