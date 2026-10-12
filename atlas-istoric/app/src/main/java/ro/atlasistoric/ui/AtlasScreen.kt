@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -75,7 +76,8 @@ fun AtlasScreen(
     topicMatchAll: Boolean, onTopicMatchAll: (Boolean) -> Unit,
     perspective: String, onPerspective: (String) -> Unit,
     search: String, onSearch: (String) -> Unit,
-    onOpen: (String) -> Unit
+    onOpen: (String) -> Unit,
+    onOverlaps: () -> Unit
 ) {
     // The temporal ruler exists independently of stored documents: zoom never invents evidence.
     val eras = remember(assertions) { assertions.map { it.periodLabel } }
@@ -189,6 +191,12 @@ fun AtlasScreen(
                     color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 Text("Timp × Spațiu × Tematică · sursele rămân intacte",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(9.dp))
+            FilledTonalButton(onClick = onOverlaps, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.GridView, contentDescription = null)
+                Spacer(Modifier.width(9.dp))
+                Text("Deschide suprapunerile vizuale →")
             }
         }
         item {
