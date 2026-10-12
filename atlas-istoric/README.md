@@ -1,6 +1,19 @@
 # ATLAS ISTORIC — Android offline
 
-**Versiunea codului: 1.0.0 (candidat la lansare).** Acest pachet conține proiectul complet și workflow-ul de compilare pentru un APK Android. **Nu conține APK compilat și NU este încă certificat ca testat pe un telefon real.** Pentru obținerea installerului este necesar build-ul Android (GitHub Actions sau Android Studio).
+**Versiunea codului: 1.2.0 (candidat cu indici incrementali).** Acest pachet conține proiectul complet și workflow-ul de compilare pentru un APK Android. **Nu conține APK compilat și NU este încă certificat ca testat pe un telefon real.** Pentru obținerea installerului este necesar build-ul Android (GitHub Actions sau Android Studio).
+
+## Nou în v1.2 — indici incrementali și benzi paralele
+
+- În Atlas → **Benzi paralele pe categorii**, fiecare indice/rădăcină și fiecare subcategorie are bandă orizontală proprie pe aceeași riglă temporală.
+- **Indice nou** creează o rădăcină editabilă, iar butonul **+** de pe orice rând adaugă o subcategorie imbricată, nelimitată ca adâncime logică.
+- Poți redenumi sau muta o categorie prin formularul de editare. Identificatorul și referințele rămân aceleași; istoricul modificărilor este păstrat.
+- În celule se văd numărul afirmațiilor distincte și intensitatea vizuală a documentării. Apăsarea unei celule deschide pasajele și sursele cu paginile lor.
+- Poți selecta regiuni ca filtre fără schimbarea categoriei: nestingul istoric al regiunilor este evaluat pentru fiecare interval de timp în parte.
+- Există benzi speciale **Fără categorie** și **Fără dată**, pentru a nu pierde cercetarea incomplet clasificată.
+- Lista de benzi este incrementală și poate fi extinsă în loturi pentru a evita supraîncărcarea interfeței.
+- Aceeași afirmație poate apărea în mai multe categorii și părinții lor, dar fără dublare fizică în baza de date.
+
+**Semnarea:** workflow-ul generează APK de test. Versiunile debug construite pe runneri diferiți pot avea semnături diferite; înainte de reinstalare exportă baza de date și păstrează o copie. Folosirea îndelungată necesită configurarea unei chei release stabile.
 
 ## Ce este Atlas Istoric
 
