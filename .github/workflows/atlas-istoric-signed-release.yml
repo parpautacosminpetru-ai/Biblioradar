@@ -8,13 +8,30 @@ on:
         description: "Scrie SEMNEZ pentru a construi cu cheia release din GitHub Secrets"
         required: true
         type: string
+  push:
+    branches: [atlas-istoric-professional-release]
+    paths:
+      - 'atlas-istoric/docs/RELEASE_REQUEST.md'
+      - '.github/workflows/atlas-istoric-signed-release.yml'
 
 permissions:
   contents: read
 
 jobs:
   signed-apk:
-    if: ${{ github.ref_name == 'atlas-istoric-professional-release' && inputs.confirm == 'SEMNEZ' }}
+    # Workflow dispatch is available when the workflow exists on the default branch.
+    # Branch-only fallback: owner explicitly enables a repository Variable AND uses
+    # [sign-release] in a commit that changes the release request marker.
+    if: >-
+      ${{
+        (github.event_name == 'workflow_dispatch' &&
+         github.ref_name == 'atlas-istoric-professional-release' &&
+         inputs.confirm == 'SEMNEZ') ||
+        (github.event_name == 'push' &&
+         github.ref_name == 'atlas-istoric-professional-release' &&
+         vars.ATLAS_ENABLE_RELEASE_SIGNING == 'true' &&
+         contains(github.event.head_commit.message, '[sign-release]'))
+      }}
     runs-on: ubuntu-latest
     defaults:
       run:
