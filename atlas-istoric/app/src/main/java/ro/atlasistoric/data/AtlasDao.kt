@@ -37,6 +37,43 @@ interface AtlasDao {
     @Query("DELETE FROM study_reviews") suspend fun clearAllStudyReviews()
     @Query("DELETE FROM study_cards") suspend fun clearAllStudyCards()
 
+    @Query("SELECT * FROM document_pages ORDER BY createdAt DESC")
+    fun documentPages(): Flow<List<DocumentPage>>
+    @Query("SELECT * FROM page_annotations ORDER BY createdAt DESC")
+    fun pageAnnotations(): Flow<List<PageAnnotation>>
+    @Query("SELECT * FROM annotation_claim_links")
+    fun annotationClaimLinks(): Flow<List<AnnotationClaimLink>>
+    @Query("SELECT * FROM document_pages WHERE id = :id LIMIT 1")
+    suspend fun documentPageById(id: String): DocumentPage?
+    @Query("SELECT * FROM page_annotations WHERE id = :id LIMIT 1")
+    suspend fun pageAnnotationById(id: String): PageAnnotation?
+    @Query("SELECT * FROM document_pages WHERE sourceId = :sourceId AND sha256 = :sha256 LIMIT 1")
+    suspend fun documentPageByHash(sourceId: String, sha256: String): DocumentPage?
+    @Query("SELECT COUNT(*) FROM document_pages")
+    suspend fun documentPageCount(): Int
+    @Query("SELECT * FROM document_pages")
+    suspend fun allDocumentPages(): List<DocumentPage>
+    @Query("SELECT * FROM page_annotations")
+    suspend fun allPageAnnotations(): List<PageAnnotation>
+    @Query("SELECT * FROM annotation_claim_links")
+    suspend fun allAnnotationClaimLinks(): List<AnnotationClaimLink>
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertDocumentPage(page: DocumentPage)
+    @Update
+    suspend fun updateDocumentPage(page: DocumentPage)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertPageAnnotation(annotation: PageAnnotation)
+    @Update
+    suspend fun updatePageAnnotation(annotation: PageAnnotation)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAnnotationClaimLink(link: AnnotationClaimLink)
+    @Query("DELETE FROM annotation_claim_links")
+    suspend fun clearAnnotationClaimLinks()
+    @Query("DELETE FROM page_annotations")
+    suspend fun clearPageAnnotations()
+    @Query("DELETE FROM document_pages")
+    suspend fun clearDocumentPages()
+
     @Query("SELECT * FROM research_drafts ORDER BY updatedAt DESC")
     fun drafts(): Flow<List<ResearchDraft>>
     @Query("SELECT * FROM draft_claim_links")
