@@ -64,6 +64,7 @@ fun AtlasApp() {
     var preferredPageLabel by rememberSaveable { mutableStateOf<String?>(null) }
     var quickSource by remember { mutableStateOf(false) }
     var quickEntity by remember { mutableStateOf(false) }
+    var quickPlace by remember { mutableStateOf(false) }
     var quickTopic by remember { mutableStateOf(false) }
     var savingAssertion by remember { mutableStateOf(false) }
     var preferredSourceId by remember { mutableStateOf<String?>(null) }
@@ -185,6 +186,18 @@ fun AtlasApp() {
         snackbarHost = { SnackbarHost(snackbar) }
     ) { insets ->
         Column(Modifier.fillMaxSize().padding(insets)) {
+            if (currentScreen == Screen.ATLAS || currentScreen == Screen.OVERLAPS ||
+                currentScreen == Screen.BANDS) {
+                TemporalZoomBar(
+                    level = level, selectedTimeKey = selectedTimeKey,
+                    anchorYear = anchorYear,
+                    onLevel = { next, key ->
+                        level = next
+                        selectedTimeKey = key
+                    },
+                    onAnchorYear = { anchorYear = it }
+                )
+            }
             when (currentScreen) {
                 Screen.ATLAS -> AtlasScreen(
                     assertions = assertions, entities = entities, topics = topics, sources = sources,
@@ -194,6 +207,7 @@ fun AtlasApp() {
                     anchorYear = anchorYear, onAnchorYear = { anchorYear = it },
                     anchorMonth = anchorMonth, onAnchorMonth = { anchorMonth = it },
                     placeIds = placeIds, onPlaceIds = { selectedPlaces = it.joinToString(";") },
+                    onCreatePlace = { quickPlace = true },
                     topicIds = topicIds, onTopicIds = { selectedTopics = it.joinToString(";") },
                     topicMatchAll = topicMatchAll, onTopicMatchAll = { topicMatchAll = it },
                     perspective = perspective, onPerspective = { perspective = it },
@@ -205,7 +219,8 @@ fun AtlasApp() {
                     },
                     onOverlaps = { current = Screen.OVERLAPS.name },
                     onBands = { current = Screen.BANDS.name },
-                    onStudy = { current = Screen.STUDY.name }
+                    onStudy = { current = Screen.STUDY.name },
+                    onDocuments = { current = Screen.LAB.name }
                 )
                 Screen.OVERLAPS -> OverlapsScreen(
                     assertions = assertions, entities = entities, topics = topics,
@@ -216,6 +231,7 @@ fun AtlasApp() {
                     anchorMonth = anchorMonth, onAnchorMonth = { anchorMonth = it },
                     timeKey = selectedTimeKey, onTimeKey = { selectedTimeKey = it },
                     placeIds = placeIds, onPlaceIds = { selectedPlaces = it.joinToString(";") },
+                    onCreatePlace = { quickPlace = true },
                     topicIds = topicIds, onTopicIds = { selectedTopics = it.joinToString(";") },
                     topicMatchAll = topicMatchAll, onTopicMatchAll = { topicMatchAll = it },
                     onOpen = {
@@ -236,6 +252,7 @@ fun AtlasApp() {
                     anchorYear = anchorYear, onAnchorYear = { anchorYear = it },
                     anchorMonth = anchorMonth, onAnchorMonth = { anchorMonth = it },
                     placeIds = placeIds, onPlaceIds = { selectedPlaces = it.joinToString(";") },
+                    onCreatePlace = { quickPlace = true },
                     onSaveTopic = { old, item -> execute { repo.saveTopic(old, item) } },
                     onManageTopics = { current = Screen.TOPICS.name },
                     onOpenAssertion = {
@@ -420,6 +437,13 @@ fun AtlasApp() {
     if (quickEntity) EntityForm(null, entities, onDismiss = { quickEntity = false }) { item ->
         execute(onSuccess = { preferredEntityId = item.id }) { repo.saveEntity(null, item) }
         quickEntity = false
+    }
+    if (quickPlace) EntityForm(null, entities,
+        onDismiss = { quickPlace = false }, initialEntityType = "PLACE") { item ->
+        execute(onSuccess = {
+            selectedPlaces = (placeIds + item.id).joinToString(";")
+        }) { repo.saveEntity(null, item) }
+        quickPlace = false
     }
     if (quickTopic) TopicForm(null, topics, onDismiss = { quickTopic = false }) { item ->
         execute(onSuccess = { preferredTopicId = item.id }) { repo.saveTopic(null, item) }
