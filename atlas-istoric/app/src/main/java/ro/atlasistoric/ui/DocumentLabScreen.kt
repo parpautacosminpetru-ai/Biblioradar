@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
@@ -32,7 +31,6 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -77,17 +75,41 @@ fun DocumentLabScreen(
     val selected = pages.firstOrNull { it.id == selectedPageId }
     var busy by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf<String?>(null) }
+    var cameraOpen by remember { mutableStateOf(false) }
+    var processingStage by remember { mutableStateOf<String?>(null) }
 
+    // The captured original is stored BEFORE OCR begins; a failed OCR cannot lose the photo.
     suspend fun importAndRead(uri: Uri) {
         try {
+            err = null
+            processingStage = "Se arhivează fotografia originală..."
             val sourceId = selectedSourceId ?: error("Alege o sursă bibliografică")
-            val newPage = repository.importImage(sourceId, pageLabel.trim(), uri)
-            selectedPageId = newPage.id
-            if (newPage.originalOcrText.isBlank()) repository.recognizePage(newPage.id)
-            onNotice("Fotografia păstrată local; OCR disponibil pentru verificare")
+            val original = repository.importImage(sourceId, pageLabel.trim(), uri)
+            selectedPageId = original.id
+            processingStage = "Fotografia a fost păstrată. Se extrage acum textul OCR..."
+            if (original.originalOcrText.isBlank()) {
+                try {
+                    val recognized = repository.recognizePage(original.id)
+                    if (recognized.originalOcrText.isBlank()) {
+                        err = "Fotografia este salvată, dar OCR nu a detectat text. Poți " +
+                            "reluă recunoașterea sau transcrie manual."
+                        onNotice("Fotografia este păstrată; OCR nu a găsit text lizibil")
+                    } else {
+                        onNotice("Fotografie salvată și OCR extras. Verifică transcrierea.")
+                    }
+                } catch (ocrError: Exception) {
+                    err = "Fotografia originală este salvată. OCR a eșuat: " +
+                        (ocrError.localizedMessage ?: "eroare de recunoaștere") +
+                        ". Poți relua OCR fără să fotografiezi din nou."
+                    onNotice("Fotografia este salvată; OCR poate fi reluat")
+                }
+            } else {
+                onNotice("Această fotografie era deja arhivată, cu text OCR disponibil")
+            }
         } catch (e: Exception) {
-            err = e.localizedMessage ?: "Nu s-a putut importa imaginea"
+            err = e.localizedMessage ?: "Fotografia nu a putut fi salvată"
         } finally {
+            processingStage = null
             busy = false
         }
     }
@@ -98,27 +120,26 @@ fun DocumentLabScreen(
             scope.launch { importAndRead(uri) }
         }
     }
-    var tempFile by remember { mutableStateOf<File?>(null) }
-    var tempUri by remember { mutableStateOf<Uri?>(null) }
-    val takePhoto = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
-        val uri = tempUri
-        if (ok && uri != null) {
-            busy = true
-            scope.launch {
-                try { importAndRead(uri) } finally {
-                    tempFile?.delete()
-                    tempFile = null
-                    tempUri = null
-                }
-            }
-        } else {
-            tempFile?.delete()
-            tempFile = null
-            tempUri = null
-        }
-    }
     val sourceById = remember(sources) { sources.associateBy { it.id } }
     val available = pages.filter { it.sourceId == selectedSourceId }
+
+    if (cameraOpen && selected == null) {
+        DocumentCameraCapture(
+            onCaptured = { photo ->
+                cameraOpen = false
+                busy = true
+                scope.launch {
+                    try {
+                        importAndRead(Uri.fromFile(photo))
+                    } finally {
+                        photo.delete()
+                    }
+                }
+            },
+            onCancel = { cameraOpen = false }
+        )
+        return
+    }
 
     if (selected == null) {
         Column(Modifier.fillMaxSize().padding(15.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -143,32 +164,34 @@ fun DocumentLabScreen(
                 OutlinedTextField(value = pageLabel, onValueChange = { pageLabel = it },
                     modifier = Modifier.fillMaxWidth(), singleLine = true,
                     label = { Text("2. Pagină / filă exactă *") })
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Button(
-                        onClick = { pickPhoto.launch(arrayOf("image/*")) },
-                        enabled = !busy && pageLabel.isNotBlank(), modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.PhotoLibrary, null, Modifier.size(19.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Importă")
-                    }
-                    OutlinedButton(onClick = {
-                        try {
-                            tempFile = File.createTempFile("atlas-original-", ".jpg", context.cacheDir)
-                            tempUri = FileProvider.getUriForFile(context,
-                                context.packageName + ".files", tempFile!!)
-                            takePhoto.launch(tempUri!!)
-                        } catch (e: Exception) {
-                            err = e.localizedMessage ?: "Camera nu s-a putut lansa"
-                        }
-                    }, enabled = !busy && pageLabel.isNotBlank(), modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.CameraAlt, null, Modifier.size(19.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Fotografiază")
-                    }
+                Button(
+                    onClick = { err = null; cameraOpen = true },
+                    enabled = !busy && selectedSourceId != null && pageLabel.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth().height(54.dp)
+                ) {
+                    Icon(Icons.Default.CameraAlt, contentDescription = null)
+                    Spacer(Modifier.width(9.dp))
+                    Text("Deschide camera → fotografie → OCR automat")
                 }
+                OutlinedButton(
+                    onClick = { pickPhoto.launch(arrayOf("image/*")) },
+                    enabled = !busy && pageLabel.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.PhotoLibrary, contentDescription = null,
+                        modifier = Modifier.size(19.dp))
+                    Spacer(Modifier.width(7.dp))
+                    Text("Sau importă o fotografie existentă")
+                }
+                Text("Imaginea originală se arhivează înaintea recunoașterii " +
+                    "textului. OCR funcționează pe telefon, fără internet.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            if (busy) {
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+                processingStage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+            }
             if (err != null) Text(err.orEmpty(), color = MaterialTheme.colorScheme.error)
             HorizontalDivider()
             Text("Pagini arhivate din sursa aleasă (${available.size})",
@@ -239,6 +262,17 @@ fun DocumentLabScreen(
         else Text("Imagine indisponibilă. Verifică arhiva ZIP înainte de continuare.",
             color = MaterialTheme.colorScheme.error)
 
+        if (busy && processingStage != null) {
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+            Text(processingStage.orEmpty(), color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodySmall)
+        }
+        if (selected.originalOcrText.isBlank() && !busy) {
+            Text("Fotografia este păstrată. Nu există încă un text OCR recunoscut. " +
+                "Poți relua recunoașterea sau introduce manual transcrierea.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("TRANSCRIERE OCR", modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.labelMedium,
@@ -298,7 +332,8 @@ fun DocumentLabScreen(
         }, enabled = !busy) {
             Icon(Icons.Default.FindInPage, null, Modifier.size(17.dp))
             Spacer(Modifier.width(5.dp))
-            Text("Reexecută OCR fără a șterge corecturile")
+            Text(if (selected.originalOcrText.isBlank()) "Extrage textul prin OCR"
+                 else "Reexecută OCR fără a șterge corecturile")
         }
 
         HorizontalDivider()
