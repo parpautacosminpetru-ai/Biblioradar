@@ -123,9 +123,13 @@ private fun typeLabel(type: String): String = when (type) {
     "EVENT" -> "Eveniment"; else -> "Altă entitate"
 }
 
-@Composable fun EntityForm(old: HistoricalEntity?, all: List<HistoricalEntity>, onDismiss: () -> Unit, onSave: (HistoricalEntity) -> Unit) {
+@Composable fun EntityForm(old: HistoricalEntity?, all: List<HistoricalEntity>,
+    onDismiss: () -> Unit, initialEntityType: String = "PERSON",
+    onSave: (HistoricalEntity) -> Unit) {
     var name by remember(old?.id) { mutableStateOf(old?.name.orEmpty()) }
-    var entityType by remember(old?.id) { mutableStateOf(old?.entityType ?: "PERSON") }
+    var entityType by remember(old?.id, initialEntityType) {
+        mutableStateOf(old?.entityType ?: initialEntityType)
+    }
     var aliases by remember(old?.id) { mutableStateOf(old?.aliases.orEmpty()) }
     var description by remember(old?.id) { mutableStateOf(old?.description.orEmpty()) }
     val knownForms = (listOf(name) + aliases.split(';', ',')).map(TimeMath::normalize)
