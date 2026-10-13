@@ -66,6 +66,7 @@ fun CategoryBandsScreen(
     onAnchorMonth: (Int) -> Unit,
     placeIds: Set<String>,
     onPlaceIds: (Set<String>) -> Unit,
+    onCreatePlace: () -> Unit,
     onSaveTopic: (HistoricalTopic?, HistoricalTopic) -> Unit,
     onManageTopics: () -> Unit,
     onOpenAssertion: (String) -> Unit
@@ -112,17 +113,6 @@ fun CategoryBandsScreen(
             onSaveTopic(editing, item)
             showEditor = false
         }
-    }
-
-    var searchPlace by remember { mutableStateOf("") }
-    val knownPlaces = remember(entities) {
-        entities.filter { it.entityType == "PLACE" }.sortedBy { it.name }
-    }
-    val matchingPlaces = remember(knownPlaces, searchPlace, placeIds) {
-        knownPlaces.filter {
-            it.id in placeIds || searchPlace.isBlank() ||
-                it.name.contains(searchPlace, ignoreCase = true)
-        }.take(if (searchPlace.isBlank()) 12 else 40)
     }
 
     var yearText by remember { mutableStateOf(anchorYear.toString()) }
@@ -202,28 +192,16 @@ fun CategoryBandsScreen(
             }
         }
 
-        Text("FILTRU SPAȚIAL (opțional)",
+        Text("SPAȚIU · FILTREAZĂ TOATE REGIUNILE INDEXATE",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary)
-        if (knownPlaces.size > 12 || placeIds.isNotEmpty()) {
-            OutlinedTextField(value = searchPlace, onValueChange = { searchPlace = it },
-                label = { Text("Caută o regiune") }, singleLine = true,
-                modifier = Modifier.fillMaxWidth())
-        }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            FilterChip(selected = placeIds.isEmpty(), onClick = { onPlaceIds(emptySet()) },
-                label = { Text("Toate locurile") })
-            matchingPlaces.forEach { p ->
-                FilterChip(
-                    selected = p.id in placeIds,
-                    onClick = {
-                        onPlaceIds(if (p.id in placeIds) placeIds - p.id else placeIds + p.id)
-                    },
-                    label = { Text(p.name, maxLines = 1) }
-                )
-            }
-        }
+        RegionPicker(
+            places = entities,
+            selectedIds = placeIds,
+            onSelected = onPlaceIds,
+            onCreatePlace = onCreatePlace,
+            compact = true
+        )
 
         Text("BENZI ACTIVE · ${model.visibleAssertionIds.size} afirmații distincte",
             style = MaterialTheme.typography.labelMedium,
