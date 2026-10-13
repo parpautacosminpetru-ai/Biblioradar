@@ -1,7 +1,7 @@
 name: Atlas Istoric - Android APK
 on:
   push:
-    branches: [atlas-istoric-android, atlas-istoric-laboratorul-sursei-v1-4, atlas-istoric-professional-release]
+    branches: [atlas-istoric-android, atlas-istoric-laboratorul-sursei-v1-4, atlas-istoric-professional-release, atlas-istoric-camera-ocr-v1-6]
     paths:
       - 'atlas-istoric/**'
       - '.github/workflows/atlas-istoric-android.yml'
