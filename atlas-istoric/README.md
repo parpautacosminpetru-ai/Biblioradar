@@ -4,7 +4,8 @@
 
 ## Nou în v1.7 — zoom vizibil și regiuni căutabile
 
-- **Zoom temporal mereu vizibil**, deasupra conținutului din Atlas / Suprapuneri / Benzi: un glisor cu cinci poziții marcate Epocă, Secol, An, Lună, Zi și butoane mărește/micșorează.
+- **Zoom temporal mereu vizibil**, deasupra conținutului din Atlas / Suprapuneri / Benzi: un glisor cu cinci poziții marcate Epocă, Secol, An, Lună, Zi și butoane mărește/micșorează. Butonul **La sursele mele** recentrează rigla pe anul median al afirmațiilor datate.
+- **Zoom pe fotografia originală** în Laboratorul Sursei, prin +/−, reset 100%, gest de apropiere cu două degete și deplasarea imaginii mărite; originalul din arhivă rămâne intact.
 - **Caută regiuni și locuri** printr-o fereastră comună, cu rezultate din întreaga bază locală, nu doar din primul ecran de etichete; suportă diacritice și denumiri alternative.
 - **Selectează mai multe regiuni**, șterge ușor selecțiile și creează o identitate istorică de tip LOC chiar din selector.
 - **Acțiuni rapide în Atlas**: Foto + OCR, Învățare, Benzi tematice, Matrice timp × spațiu.
