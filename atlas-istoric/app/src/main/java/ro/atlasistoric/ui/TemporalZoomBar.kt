@@ -26,6 +26,7 @@ fun TemporalZoomBar(
     level: String,
     selectedTimeKey: String?,
     anchorYear: Int,
+    representativeYear: Int?,
     onLevel: (String, String?) -> Unit,
     onAnchorYear: (Int) -> Unit
 ) {
@@ -48,6 +49,17 @@ fun TemporalZoomBar(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f)
                 )
+                if (representativeYear != null) {
+                    TextButton(
+                        onClick = {
+                            onAnchorYear(representativeYear)
+                            onLevel("SECOL", null)
+                        },
+                        contentPadding = PaddingValues(horizontal = 6.dp)
+                    ) {
+                        Text("La sursele mele", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
                 Text(
                     "Nivel: $chosen",
                     style = MaterialTheme.typography.labelLarge,
