@@ -37,7 +37,6 @@ import kotlinx.coroutines.withContext
 import ro.atlasistoric.data.*
 import ro.atlasistoric.util.AnchorStatus
 import ro.atlasistoric.util.resolveTextAnchor
-import java.io.File
 
 /**
  * The original image is always above the OCR; selecting a text range creates
@@ -84,28 +83,34 @@ fun DocumentLabScreen(
             err = null
             processingStage = "Se arhivează fotografia originală..."
             val sourceId = selectedSourceId ?: error("Alege o sursă bibliografică")
-            val original = repository.importImage(sourceId, pageLabel.trim(), uri)
-            selectedPageId = original.id
-            processingStage = "Fotografia a fost păstrată. Se extrage acum textul OCR..."
-            if (original.originalOcrText.isBlank()) {
-                try {
-                    val recognized = repository.recognizePage(original.id)
-                    if (recognized.originalOcrText.isBlank()) {
-                        err = "Fotografia este salvată, dar OCR nu a detectat text. Poți " +
-                            "reluă recunoașterea sau transcrie manual."
-                        onNotice("Fotografia este păstrată; OCR nu a găsit text lizibil")
-                    } else {
-                        onNotice("Fotografie salvată și OCR extras. Verifică transcrierea.")
-                    }
-                } catch (ocrError: Exception) {
-                    err = "Fotografia originală este salvată. OCR a eșuat: " +
-                        (ocrError.localizedMessage ?: "eroare de recunoaștere") +
-                        ". Poți relua OCR fără să fotografiezi din nou."
+            val label = pageLabel.trim()
+            val outcome = ro.atlasistoric.util.storeThenRecognize(
+                saveOriginal = { repository.importImage(sourceId, label, uri) },
+                onOriginalSaved = { page ->
+                    selectedPageId = page.id
+                    processingStage = "Fotografia a fost păstrată. Se extrage textul OCR..."
+                },
+                readText = { page ->
+                    if (page.originalOcrText.isNotBlank()) page.originalOcrText
+                    else repository.recognizePage(page.id).originalOcrText
+                }
+            )
+            when {
+                outcome.ocrProblem != null -> {
+                    err = "Fotografia este salvată. OCR a eșuat: " +
+                        (outcome.ocrProblem.localizedMessage ?: "eroare") +
+                        ". Îl poți relua fără să refaci fotografia."
                     onNotice("Fotografia este salvată; OCR poate fi reluat")
                 }
-            } else {
-                onNotice("Această fotografie era deja arhivată, cu text OCR disponibil")
+                !outcome.hasRecognizedText -> {
+                    err = "Fotografia este salvată, dar OCR nu a identificat text. " +
+                        "Poți relua recunoașterea sau transcrie manual."
+                    onNotice("Fotografia este păstrată; OCR nu a găsit text lizibil")
+                }
+                else -> onNotice("Fotografie salvată și OCR extras. Verifică transcrierea.")
             }
+        } catch (cancelled: java.util.concurrent.CancellationException) {
+            throw cancelled
         } catch (e: Exception) {
             err = e.localizedMessage ?: "Fotografia nu a putut fi salvată"
         } finally {
