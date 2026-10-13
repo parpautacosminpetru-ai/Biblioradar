@@ -1,6 +1,18 @@
 # ATLAS ISTORIC — Android offline
 
-**Versiunea codului: 1.5.0-rc1 (candidat pentru validare profesională).** Acest pachet conține proiectul complet și workflow-ul de compilare pentru un APK Android. **Nu conține APK compilat și NU este încă certificat ca testat pe un telefon real.** Pentru obținerea installerului este necesar build-ul Android (GitHub Actions sau Android Studio).
+**Versiunea codului: 1.6.0 (Android CameraX → OCR automat, candidat de testare).** Acest pachet conține proiectul complet și workflow-ul de compilare pentru un APK Android. **Nu conține APK compilat și NU este încă certificat ca testat pe un telefon real.** Pentru obținerea installerului este necesar build-ul Android (GitHub Actions sau Android Studio).
+
+## Nou în v1.6 — fotografiere directă și OCR automat
+
+- Din **Documente → Laboratorul Sursei**, alegi mai întâi o sursă bibliografică și numărul paginii.
+- Atingi **„Deschide camera → fotografie → OCR automat”**. Vizorul CameraX apare chiar în aplicație.
+- Încadrezi întreaga pagină și apeși **„Fotografiază → extrage OCR”**.
+- Atlas copiază **mai întâi fotografia originală în arhiva privată** (cu SHA-256), apoi extrage textul folosind ML Kit offline.
+- După OCR, se deschide fișa paginii: imaginea originală, textul brut, transcrierea corectabilă, adnotările și confirmarea segmentelor.
+- Dacă OCR eșuează sau nu recunoaște textul, fotografia originală rămâne în arhivă. Poți apăsa **„Extrage textul prin OCR”** ulterior, fără o nouă captură.
+- Poți importa și fotografii existente din telefon.
+- OCR-ul nu este garantat perfect, mai ales pentru manuscrise, pagini curbate, lumină slabă ori tipărituri istorice; transcrierea trebuie verificată uman.
+- Versiunea 1.6 este un APK de test; verificarea pe un dispozitiv fizic este obligatorie înainte de folosirea permanentă.
 
 ## Nou în v1.5-rc1 — siguranță și control documentar
 
