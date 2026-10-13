@@ -87,6 +87,11 @@ fun AtlasApp() {
     LaunchedEffect(Unit) { withContext(Dispatchers.IO) { repo.bootstrapTopics() } }
     val currentScreen = Screen.valueOf(current)
     val detailAssertion = assertions.find { it.id == editId }
+    val evidenceCenterYear = remember(assertions) {
+        assertions.mapNotNull { it.yearStart ?: it.yearEnd }.sorted().let { years ->
+            years.getOrNull(years.size / 2)
+        }
+    }
     val navigatingEditor = currentScreen == Screen.ASSERTION_EDITOR || currentScreen == Screen.ASSERTION_DETAIL
 
     Scaffold(
@@ -191,6 +196,7 @@ fun AtlasApp() {
                 TemporalZoomBar(
                     level = level, selectedTimeKey = selectedTimeKey,
                     anchorYear = anchorYear,
+                    representativeYear = evidenceCenterYear,
                     onLevel = { next, key ->
                         level = next
                         selectedTimeKey = key
