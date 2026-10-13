@@ -63,6 +63,7 @@ fun OverlapsScreen(
     onTimeKey: (String?) -> Unit,
     placeIds: Set<String>,
     onPlaceIds: (Set<String>) -> Unit,
+    onCreatePlace: () -> Unit,
     topicIds: Set<String>,
     onTopicIds: (Set<String>) -> Unit,
     topicMatchAll: Boolean,
@@ -138,6 +139,13 @@ fun OverlapsScreen(
         Text("Timp → pe orizontală · Spațiu → pe verticală · Temele → benzi colorate",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        RegionPicker(
+            places = entities,
+            selectedIds = placeIds,
+            onSelected = onPlaceIds,
+            onCreatePlace = onCreatePlace,
+            compact = true
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = {
