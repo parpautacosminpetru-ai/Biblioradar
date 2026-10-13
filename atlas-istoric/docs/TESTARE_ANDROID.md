@@ -70,3 +70,18 @@ Aceste teste manuale nu sunt echivalente cu testele Gradle/SQLite și nu trebuie
 - [ ] Repetă un upgrade cu un APK release semnat prin cheia permanentă a proprietarului.
 - [ ] Testează consumul de memorie și timpul de procesare pentru arhive de cel puțin
       1 GB, pe un dispozitiv Android cu RAM limitat, înainte de folosirea permanentă.
+
+
+## Acceptare obligatorie v1.6 — fotografie → OCR offline
+
+- [ ] Din **Documente**, selectează o sursă bibliografică și completează pagina.
+- [ ] Apasă **Deschide camera**: preview-ul CameraX trebuie să apară în Atlas, nu în altă aplicație.
+- [ ] Verifică fluxul de acordare/refuzare a permisiunii CAMERA.
+- [ ] Apasă **Fotografiază → extrage OCR**: originalul trebuie să fie salvat înainte de recunoaștere.
+- [ ] Deschide pagina: imaginea, OCR-ul brut și textul editabil trebuie să fie vizibile.
+- [ ] Dezactivează conexiunea la internet și repetă fluxul cu o pagină tipărită.
+- [ ] Încearcă fotografii întunecate și pagini fără text; recunoașterea poate eșua, dar imaginea trebuie să rămână.
+- [ ] Reexecută OCR pe aceeași fotografie fără a o recaptura.
+- [ ] Selectează un pasaj, adnotează-l și creează o afirmație cu pagina/sursa precompletată.
+- [ ] Exportă arhiva completă criptată și restaureaz-o pe o instalare de probă, verificând imaginea și textul.
+- [ ] Testează pe telefon fizic cu autorotație și diferite raporturi de aspect ale camerei.
