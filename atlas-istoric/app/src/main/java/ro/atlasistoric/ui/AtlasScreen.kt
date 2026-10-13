@@ -71,6 +71,7 @@ fun AtlasScreen(
     anchorYear: Int, onAnchorYear: (Int) -> Unit,
     anchorMonth: Int, onAnchorMonth: (Int) -> Unit,
     placeIds: Set<String>, onPlaceIds: (Set<String>) -> Unit,
+    onCreatePlace: () -> Unit,
     topicIds: Set<String>, onTopicIds: (Set<String>) -> Unit,
     topicMatchAll: Boolean, onTopicMatchAll: (Boolean) -> Unit,
     perspective: String, onPerspective: (String) -> Unit,
@@ -78,7 +79,8 @@ fun AtlasScreen(
     onOpen: (String) -> Unit,
     onOverlaps: () -> Unit,
     onBands: () -> Unit,
-    onStudy: () -> Unit
+    onStudy: () -> Unit,
+    onDocuments: () -> Unit
 ) {
     // The temporal ruler exists independently of stored documents: zoom never invents evidence.
     val eras = remember(assertions) { assertions.map { it.periodLabel } }
@@ -166,14 +168,23 @@ fun AtlasScreen(
             }
         }
         item {
-            Button(onClick = onStudy, modifier = Modifier.fillMaxWidth()) {
-                Text("Învățare · exerciții din sursele mele →")
-            }
-            FilledTonalButton(onClick = onBands, modifier = Modifier.fillMaxWidth()) {
-                Text("Benzi paralele pe categorii →")
-            }
-            OutlinedButton(onClick = onOverlaps, modifier = Modifier.fillMaxWidth()) {
-                Text("Matricea timp × spațiu →")
+            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Button(onClick = onDocuments, modifier = Modifier.weight(1f)) {
+                        Text("Fotografiază · OCR")
+                    }
+                    FilledTonalButton(onClick = onStudy, modifier = Modifier.weight(1f)) {
+                        Text("Învățare")
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    OutlinedButton(onClick = onBands, modifier = Modifier.weight(1f)) {
+                        Text("Benzi pe categorii")
+                    }
+                    OutlinedButton(onClick = onOverlaps, modifier = Modifier.weight(1f)) {
+                        Text("Timp × spațiu")
+                    }
+                }
             }
         }
         item {
@@ -250,17 +261,18 @@ fun AtlasScreen(
             }
         }
         item {
-            SectionSurface("02 · SPAȚIU", "Ierarhii adaptate perioadei") {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    item { FilterChip(selected = placeIds.isEmpty(), onClick = { onPlaceIds(emptySet()) }, label = { Text("Toate regiunile") }) }
-                    items(geographicRows, key = { it.id }) { row ->
-                        FilterChip(selected = row.id in placeIds,
-                            onClick = { onPlaceIds(if (row.id in placeIds) placeIds - row.id else placeIds + row.id) },
-                            label = { Text("${"↳ ".repeat(row.depth.coerceAtMost(4))}${row.name}") })
-                    }
+            SectionSurface("02 · SPAȚIU", "Caută și selectează regiunile tale istorice") {
+                RegionPicker(
+                    places = historyPlaces,
+                    selectedIds = placeIds,
+                    onSelected = onPlaceIds,
+                    onCreatePlace = onCreatePlace
+                )
+                if (geographicRows.isEmpty()) {
+                    Hint("Catalogul este extensibil. Adaugă un loc și documentează separat relațiile geografice datate.")
+                } else {
+                    Hint("Ierarhiile istorice sunt evaluate în perioada selectată. Regiunile cu același nume nu sunt unificate automat.")
                 }
-                if (geographicRows.isEmpty()) Hint("Adaugă un loc; nestingul geografic se definește prin relații PART_OF datate.")
-                else Hint("Poți selecta mai multe regiuni: apar informațiile din oricare dintre ele și din subregiunile lor.")
             }
         }
         item {
