@@ -261,9 +261,10 @@ fun DocumentLabScreen(
         Text("ORIGINAL · conservat pe dispozitiv",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary)
-        if (image != null) Image(bitmap = image!!, contentDescription = "Fotografia originală",
-            modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
-            contentScale = ContentScale.Fit)
+        if (image != null) ZoomableDocumentImage(
+            bitmap = image!!,
+            modifier = Modifier.fillMaxWidth()
+        )
         else Text("Imagine indisponibilă. Verifică arhiva ZIP înainte de continuare.",
             color = MaterialTheme.colorScheme.error)
 
