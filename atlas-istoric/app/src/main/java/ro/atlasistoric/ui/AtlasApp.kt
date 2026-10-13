@@ -119,11 +119,6 @@ fun AtlasApp() {
                     }
                 },
                 actions = {
-                    if (currentScreen == Screen.LAB) {
-                        IconButton(onClick = { current = Screen.CAMERA.name }) {
-                            Icon(Icons.Default.CameraAlt, contentDescription = "OCR live pentru pasaj")
-                        }
-                    }
                     if (currentScreen == Screen.ATLAS) {
                         IconButton(onClick = { current = Screen.LAB.name }) {
                             Icon(Icons.Default.DocumentScanner, contentDescription = "Laboratorul Sursei")
