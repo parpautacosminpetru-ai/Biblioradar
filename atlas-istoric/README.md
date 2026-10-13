@@ -1,6 +1,15 @@
 # ATLAS ISTORIC — Android offline
 
-**Versiunea codului: 1.6.0 (Android CameraX → OCR automat, candidat de testare).** Acest pachet conține proiectul complet și workflow-ul de compilare pentru un APK Android. **Nu conține APK compilat și NU este încă certificat ca testat pe un telefon real.** Pentru obținerea installerului este necesar build-ul Android (GitHub Actions sau Android Studio).
+**Versiunea codului: 1.7.0 (zoom temporal permanent vizibil, căutare de regiuni și navigație simplificată).** Acest pachet conține proiectul complet și workflow-ul de compilare pentru un APK Android. **Nu conține APK compilat și NU este încă certificat ca testat pe un telefon real.** Pentru obținerea installerului este necesar build-ul Android (GitHub Actions sau Android Studio).
+
+## Nou în v1.7 — zoom vizibil și regiuni căutabile
+
+- **Zoom temporal mereu vizibil**, deasupra conținutului din Atlas / Suprapuneri / Benzi: un glisor cu cinci poziții marcate Epocă, Secol, An, Lună, Zi și butoane mărește/micșorează.
+- **Caută regiuni și locuri** printr-o fereastră comună, cu rezultate din întreaga bază locală, nu doar din primul ecran de etichete; suportă diacritice și denumiri alternative.
+- **Selectează mai multe regiuni**, șterge ușor selecțiile și creează o identitate istorică de tip LOC chiar din selector.
+- **Acțiuni rapide în Atlas**: Foto + OCR, Învățare, Benzi tematice, Matrice timp × spațiu.
+- **Ierarhiile teritoriale rămân dependente de perioadă**, prin relații PART_OF datate; folosirea unui toponim contemporan nu presupune automat identitate teritorială istorică.
+- **Important:** catalogul din această versiune este în continuare local și extensibil. **Nu pretindem că include din fabrică toate regiunile istorice ale lumii.** Un import oficial de gazetteere GeoNames, Pleiades și WHG, cu licențe și identificatori de autoritate, rămâne de proiectat și testat. Aceasta nu este încă o hartă GIS vectorială cu zoom spațial.
 
 ## Nou în v1.6 — fotografiere directă și OCR automat
 
